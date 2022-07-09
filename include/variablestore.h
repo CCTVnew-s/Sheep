@@ -1,21 +1,15 @@
 // This is the signal related variable API, such that creation/maintain is easier
 // Think you're programming in a weak type way,
-
-
 #ifndef VARIABLESTORE
 #define VARIABLESTORE
-
 
 #include "k.h"
 #include <vector>
 #include <map>
+#include <tuple>
 #include <string>
 #include <iostream>
 #include "kutil.h"
-
-
-
-
 
 
 // this is easy for c++ table, but how about cuda?
@@ -29,7 +23,7 @@ enum class MemoryLifeCyle{Global, Task, SinglePhase};
 
 
 class MemoryManager;
-typedef std::map<int, MemoryManager*> MemoManagerStore;
+typedef std::map<int, MemoryManager*> MemoManagerByThreads;
 
 class MemoryManagerSingle{
 public:
@@ -91,30 +85,33 @@ std::vector<void *> overfillmem;
 };
 
 
-
 class MemoryManager{
 public:
+    std::map<std::pair<CalculationLevel, MemoryLifeCyle>, MemoryManagerSingle*> childmgrs;
 
-
-
-
-
-
-
-}
-
-
-
-
-
-
-
-     MemoManagerStore buildnmemorymgr(int n, long long s){
-        MemoManagerStore rtn;
-        for(int i=0;i<n;i++)
-            rtn.insert(std::pair<int,MemoryManager*>(i,new MemoryManager(s)));
-        return rtn;
+    MemoryManager(std::map<std::pair<CalculationLevel, MemoryLifeCyle>, long> sizeconfig){
+        childmgrs = std::map<std::pair<CalculationLevel, MemoryLifeCyle>, MemoryManagerSingle*>();
+        for (auto mconfig: sizeconfig)
+            childmgrs.insert(std::make_pair(mconfig.first, new  MemoryManagerSingle(mconfig.second)));
     }
+
+    MemoryManagerSingle* getChildMgr(CalculationLevel l, MemoryLifeCyle c){
+        if (childmgrs.find(std::make_pair(l,c)) == childmgrs.end())
+            return NULL;
+        else
+            return childmgrs.at(std::make_pair(l,c));
+    }
+    
+
+};
+
+
+MemoManagerByThreads buildnmemorymgr(int n, std::map<std::pair<CalculationLevel, MemoryLifeCyle>, long> sizeconfig){
+        MemoManagerByThreads rtn;
+        for(int i=0;i<n;i++)
+            rtn.insert(std::pair<int,MemoryManager*>(i,new MemoryManager(sizeconfig)));
+        return rtn;
+};
 
 
 
