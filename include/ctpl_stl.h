@@ -73,7 +73,7 @@ namespace ctpl {
     public:
 
         thread_pool() { this->init(); }
-        thread_pool(int nThreads) { this->init(); this->resize(nThreads); }
+        thread_pool(int nThreads) { this->init(); this->resize(nThreads); sizeforreset = nThreads; }
 
         // the destructor waits for all the functions in the queue to be finished
         ~thread_pool() {
@@ -116,6 +116,12 @@ namespace ctpl {
                     this->flags.resize(nThreads);  // safe to delete because the threads have copies of shared_ptr of the flags, not originals
                 }
             }
+            sizeforreset = nThreads;
+        }
+
+        void reset(){
+            init();
+            resize(sizeforreset);
         }
 
         // empty the queue
@@ -241,6 +247,7 @@ namespace ctpl {
         std::atomic<bool> isDone;
         std::atomic<bool> isStop;
         std::atomic<int> nWaiting;  // how many threads are waiting
+        std::atomic<int> sizeforreset;
 
         std::mutex mutex;
         std::condition_variable cv;

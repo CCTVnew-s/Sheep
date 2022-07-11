@@ -61,7 +61,7 @@ void * tableview:: offsetcolptr(std::string col, int offset ){
     {
         EXPAND_FUN_OVER_KTYPES(KCONVEREXPAND, rtn, offset)
     default:
-        std::cout<< "Error, no matchable type info is find for col" << col << "swtiched to mixed type" <<  std::endl;
+        LOGAndCOUT(CRITICAL,OffsetTableView, "Error, no matchable type info is find for col" << col << "swtiched to mixed type" <<  std::endl);
         rtn = (void *)((K *)rtn  + offset);
         break;
     }
@@ -90,7 +90,7 @@ std::vector<tableview> splitsortedtable(tableview t, std::string splitcol){
              EXPAND_FUN_OVER_KTYPES(EQUALPREVIOUSKID, splitcolarray, cursor,  newtable) 
             default:
                 // can't handle mixed type like list of lists
-                std::cout<< "Debug, no matchable type info is find for col" << splitcol << std::endl;
+                LOGAndCOUT(ERROR,TALEVIEWSPLITSORTTABLE, "Debug, no matchable type info is find for col" << splitcol << std::endl);
                 break;
             }
         }
@@ -124,8 +124,8 @@ K extendAxisTable(K &axis, std::map<std::string, int> extendcolmeta){
         tablecol = js(& tablecol, (S)cstr);
         tableval = jk(& tableval, ktn(col.second, length));
 
-        std::cout << "table col  # " << tablecol->n << std::endl <<  col.first.c_str();
-        std::cout << "table col  # " << tableval->n << std::endl;
+        //std::cout << "table col  # " << tablecol->n << std::endl <<  col.first.c_str();
+        // std::cout << "table col  # " << tableval->n << std::endl;
     }
     return xT(xD(tablecol, tableval));
 }

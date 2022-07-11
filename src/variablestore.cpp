@@ -1,5 +1,5 @@
 #include "variablestore.h"
-
+#include "logging.h"
 
 bool INSERTENV(ENV *t, std::string c, std::string a, int p, KFC val){
     if (t->find(c) == t->end())
@@ -12,7 +12,7 @@ bool INSERTENV(ENV *t, std::string c, std::string a, int p, KFC val){
 
     if (mapa->find(p) != mapa->end())
     {
-        std::cout << "duplicated config" << std::endl;
+        LOGAndCOUT(ERROR,InsertEnv, "duplicated config" << std::endl);
         return false;
     }
     else{
@@ -23,25 +23,24 @@ bool INSERTENV(ENV *t, std::string c, std::string a, int p, KFC val){
 
 
 
-KFC GETENV(ENV *t, std::string c, std::string a, int p, std::iostream& out){
+KFC GETENV(ENV *t, std::string c, std::string a, int p){
     if (t->find(c)== t->end()){
-        out << "config not found key " << c << std::endl;
+        LOGAndCOUT(ERROR,GetEnv, "config not found key " << c << std::endl);
         return EMPTYKFC;
     }
     auto mapc = t->at(c);
     if (mapc->find(a) == mapc->end()){
-        out << "config not found key " << a  << std::endl;
+         LOGAndCOUT(ERROR,GetEnv, "config not found key " << a  << std::endl);
         return EMPTYKFC;
     }
     auto mapa = mapc->at(a);
     if (mapa->find(p) == mapa->end()){
-        out << "config not found key" << p  << std::endl;
+         LOGAndCOUT(ERROR,GetEnv, "config not found key" << p  << std::endl);
         return EMPTYKFC;
     }
     return mapa->at(p);
 
 }
-
 
 
 
@@ -57,7 +56,7 @@ bool INSERTENVFunc(ENVFunc *t, std::string c, std::string a, int p, IterExecFunc
 
     if (mapa->find(p) != mapa->end())
     {
-        std::cout << "duplicated config" << std::endl;
+        LOGAndCOUT(ERROR,InsertIterFuncEnv , "duplicated config" << std::endl);
         return false;
     }
     else{
@@ -77,7 +76,7 @@ bool INSERTENVFunc(ENVFunc *t, std::string c, std::string a, int p, GetChildTask
 
     if (mapa->find(p) != mapa->end())
     {
-        std::cout << "duplicated config" << std::endl;
+        LOGAndCOUT(ERROR,InsertTaskFuncEnv ,  "duplicated config" << std::endl);
         return false;
     }
     else{
@@ -88,19 +87,19 @@ bool INSERTENVFunc(ENVFunc *t, std::string c, std::string a, int p, GetChildTask
 
 
 
-IterExecFunction GETENVFuncf1(ENVFunc *t, std::string c, std::string a, int p, std::iostream &out){
+IterExecFunction GETENVFuncf1(ENVFunc *t, std::string c, std::string a, int p){
     if (t->find(c)== t->end()){
-        out << "config not found key " << c << std::endl;
+        LOGAndCOUT(ERROR,GetIterFuncEnv, "config not found key " << c << std::endl);
         return EMPTYITER;
     }
     auto mapc = t->at(c);
     if (mapc->find(a) == mapc->end()){
-        out << "config not found key " << a  << std::endl;
+        LOGAndCOUT(ERROR,GetIterFuncEnv, "config not found key " << a  << std::endl);
         return EMPTYITER;
     }
     auto mapa = mapc->at(a);
     if (mapa->find(p) == mapa->end()){
-        out << "config not found key" << p  << std::endl;
+        LOGAndCOUT(ERROR,GetIterFuncEnv, "config not found key" << p  << std::endl);
         return EMPTYITER;
     }
     return mapa->at(p).f1;
@@ -110,31 +109,31 @@ IterExecFunction GETENVFuncf1(ENVFunc *t, std::string c, std::string a, int p, s
 
 GetChildTaskFunc GETENVFuncf2(ENVFunc *t, std::string c, std::string a, int p,std::iostream &out){
     if (t->find(c)== t->end()){
-       out << "config not found key " << c << std::endl;
+      LOGAndCOUT(ERROR,GetTaskFuncEnv, "config not found key " << c << std::endl);
         return EMPTYITER;
     }
     auto mapc = t->at(c);
     if (mapc->find(a) == mapc->end()){
-        out << "config not found key " << a  << std::endl;
+      LOGAndCOUT(ERROR,GetTaskFuncEnv , "config not found key " << a  << std::endl);
         return EMPTYITER;
     }
     auto mapa = mapc->at(a);
     if (mapa->find(p) == mapa->end()){
-        out << "config not found key" << p  << std::endl;
+    LOGAndCOUT(ERROR,GetTaskFuncEnv , "config not found key" << p  << std::endl);
         return EMPTYITER;
     }
     return mapa->at(p).f2;
 }
 
 
- std::map<int, IterExecFunction> * GETENVFuncMapf1(ENVFunc *t, std::string c, std::string a, std::iostream &out){
+ std::map<int, IterExecFunction> * GETENVFuncMapf1(ENVFunc *t, std::string c, std::string a){
     if (t->find(c)== t->end()){
-        out << "config not found key " << c << std::endl;
+        LOGAndCOUT(ERROR,GetIterFuncEnv, "config not found key " << c << std::endl);
         return EMPTYITER;
     }
     auto mapc = t->at(c);
     if (mapc->find(a) == mapc->end()){
-        out << "config not found key " << a  << std::endl;
+        LOGAndCOUT(ERROR,GetIterFuncEnv, "config not found key " << a  << std::endl);
         return EMPTYITER;
     }
     auto mapa = mapc->at(a);
@@ -147,7 +146,7 @@ GetChildTaskFunc GETENVFuncf2(ENVFunc *t, std::string c, std::string a, int p,st
 
 
 
-std::ostream& operator<<(std::ostream& os, const KFC& f)
+std::iostream& operator<<(std::iostream& os, const KFC& f)
 {
     switch (f->t)
     {

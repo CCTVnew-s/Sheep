@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
-
+#include "logging.h"
 // translate kdb table
 
 
@@ -33,7 +33,7 @@ tableview(const K &kt){
     K colnames = kK(kt->k)[0];
     K cols = kK(kt->k)[1];
     length = kK(cols)[0]->n;
-    std::cout << "table loaded with length" << length << std::endl;
+    LOGAndCOUT(INFO, BuildTableView, "table loaded with length" << length << std::endl);
     for (int coli=0;coli<colnames->n; coli++ ){
       std::string colstr = kS(colnames)[coli];
       table.insert(std::make_pair(colstr, (void *)kK(cols)[coli]->G0));

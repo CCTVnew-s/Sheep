@@ -1,7 +1,7 @@
 #include "ctpl_stl.h"
 #include <iostream>
 #include <string>
-
+#include "logging.h"
 
 
 void first(int id) {
@@ -32,15 +32,29 @@ void ugu(int id, Third & t) {
 int main(int argc, char **argv) {
     ctpl::thread_pool p(4 /* two threads in the pool */);
 
+    // testing logging as well
+
+    LogByThread::initializeservice(4);
+
+    std::cout << "print build log";
+
     for (int j = 0; j<50; j++)
-        p.push([](int j){  // lambda
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        p.push([](int id, int j){  // lambda
+        bool bind = LogByThread::bundleidwithID(std::this_thread::get_id(), id);
+        if (!bind)
+            std::cout << "thread " << std::this_thread::get_id() << " already bundled " << "\n";
+        LOG(DEBUG, TestThreadPoolandLog, "this is the taks of " <<  j << "in the log" << "\n");
+
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         std::cout << "hello from " << std::this_thread::get_id() << ' ' << "with arg" << '\n';
-        });
+        }, j);
 
+    p.stop(true);
+    ; LogByThread::endservice(); ;
+    std::cout<< "current size" << p.size();
+    p.reset();
 
-
-    std::future<void> qw = p.push(std::ref(first));  // function
     p.push(first);  // function
     p.push(aga, 7);  // function
 
@@ -89,29 +103,34 @@ int main(int argc, char **argv) {
 
     p.push(mmm, "worked");
 
-    auto f = p.pop();
-    if (f) {
-        std::cout << "poped function from the pool ";
-        f(0);
-    }
-    // change the number of treads in the pool
 
-    p.resize(5);
 
     std::string s2 = "result";
-    auto f1 = p.push([s2](int){
+     p.push([s2](int){
+        std::cout<< "run sth after stop";
+
         return s2;
     });
     // other code here
     //...
-    std::cout << "returned " << f1.get() << '\n';
 
-    auto f2 = p.push([](int){
+
+
+    p.push([](int){
         throw std::exception();
     });
     // other code here
     //...
 
+    p.stop(true);
 
+
+    // change the number of treads in the pool
+        std::cout<< "\n why I not stuck here" << std::endl;
+
+
+    //                                  p.resize(5);
+
+    std::cout<< "\n why I stuck here";
     return 0;
 }

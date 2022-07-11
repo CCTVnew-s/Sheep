@@ -9,7 +9,7 @@
 
 #include "ctpl_stl.h"
 #include "k.h"      
-
+#include "logging.h"
 #include "variablestore.h"
 
 
@@ -102,7 +102,7 @@ static KFC getvar(KFCStore *context, std::string varname, std::iostream &out){
 }
 
 
-RecursiveIterationExecutor *createChildIterator(KFC childtask, int threadid);
+RecursiveIterationExecutor *createChildIterator(KFC childtask);
 
 
 
@@ -114,12 +114,12 @@ ENVFunc *ftable;
 KFCStore *taskcontext;
 // vars inherited from upper caller
 KFCStore *uppervars;
-int threadid;
+
 CalculationLevel currentlevel;
 
 // initialize from var, global tools
 std::string componentname;
-MemoManagerStore *memmgrs;
+MemoManagerByThreads *memmgrs;
 ctpl::thread_pool *threadpool;
 
 // initialize from config
@@ -145,7 +145,7 @@ KFC currenttask;
 KFC* childtasks;
 GetChildTaskFunc getchildtask;
 
-std::fstream logfile;
+std::string logheader;
 
 
 public:
