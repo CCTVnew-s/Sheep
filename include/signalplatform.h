@@ -28,15 +28,18 @@ bool  startCalc() {return false;};
 // suport a) tracking memory usage b) extend memory when it's not enough
 // MainThread + TaskThread
 
-
-
 // organize iteration of tasks, might take a recursive approach
+
+
+#define EXECUTORID  " exectask " << currenttask << " :" 
+
+
 class RecursiveIterationExecutor{
 
 public:
 enum loopexecmode {SingleThread, ThreadPool};
 
-RecursiveIterationExecutor(ENV *env, ENVFunc *envf, KFCStore *creatervars, KFCStore *taskcontext, std::string componentname, int threadid );
+RecursiveIterationExecutor(ENV *env, ENVFunc *envf, KFCStore *creatervars, KFCStore *taskcontext, std::string componentname, MemoManagerByThreads* mmmgrs, MemoryManager* curmmmgr, ctpl::thread_pool *threadpool, KFC currenttask=EMPTYKFC);
 
 // Intialize its own localvars
 bool preloop();
@@ -71,21 +74,21 @@ int operator()(){
 bool inifromenv(ENV* , ENVFunc*, KFCStore*);
 
 template<typename T>
-static bool iniconfig(T& config, ENV* env, std::string componentname, std::string attribute, int prior, int attributtype){
+static bool iniconfig(T& config, ENV* env, std::string componentname, std::string attribute, int prior, int attributtype, bool isenum=false){
     KFC configval;
-    if (0 ==  (configval = GETENV(env,componentname,attribute,prior,out))){
-        LOG(ERROR, EXECUTORINICONFIG , "<" << componentname << "|" << attribute << "|" << prior << "> config not found" << std::endl);
+    if (0 ==  (configval = GETENV(env,componentname,attribute,prior))){
+        LOG(ERROR, EXECUTORINICONFIG ,  "<" << componentname << "|" << attribute << "|" << prior << "> config not found" << std::endl);
         return false;
     }
     switch (attributtype)
     {
     case KI:
-        config = configval->i;
-         LOG(DEBUG, EXECUTORINICONFIG, "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl);
+         config = configval->i;
+         LOG(DEBUG, EXECUTORINICONFIG,  "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl);
         break;
     case KS:
         config = configval->s;
-        LOG(DEBUG, EXECUTORINICONFIG, "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl);
+        LOG(DEBUG, EXECUTORINICONFIG,  "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl);
         break;
     default:
         break;
@@ -95,14 +98,14 @@ static bool iniconfig(T& config, ENV* env, std::string componentname, std::strin
 
 static KFC getvar(KFCStore *context, std::string varname){
     if(context->find(varname) == context->end()){
-        LOG(ERROR, EXECUTORGETVAR, "var " << varname << "not found " << std::endl);
+        LOG(ERROR, EXECUTORGETVAR,  "var " << varname << "not found " << std::endl);
         return 0;
     }
     return context -> at(varname);
 }
 
 
-RecursiveIterationExecutor *createChildIterator(KFC childtask);
+RecursiveIterationExecutor *createChildIterator(KFC childtask, MemoryManager *childmgr);
 
 
 
@@ -115,13 +118,11 @@ KFCStore *taskcontext;
 // vars inherited from upper caller
 KFCStore *uppervars;
 
-CalculationLevel currentlevel;
 
 // initialize from var, global tools
 std::string componentname;
 MemoManagerByThreads *memmgrs; // this is just for building sub purpose
 MemoryManager *curmemmgr;
-
 ctpl::thread_pool *threadpool;
 
 // initialize from config
@@ -131,6 +132,7 @@ std::string subitercomponentname;
 bool hasGPUtask;
 std::string itertaskname;
 std::string subitertaskname;
+CalculationLevel currentlevel;
 
 
 
@@ -147,7 +149,6 @@ KFC currenttask;
 KFC* childtasks;
 GetChildTaskFunc getchildtask;
 
-std::string logheader;
 
 
 public:
@@ -166,6 +167,8 @@ static const std::string GPUFUNC_key;
 static const std::string ITERATORTASK_key;
 static const std::string CHILDITERATORTASK_key;
 static const std::string GETCHILDTASKS_key;
+static const std::string CALCULATIONLEVEL_key;
+
 
 };
 
@@ -174,13 +177,12 @@ static const std::string GETCHILDTASKS_key;
 class MultiLoopPlatform: public BasSignalPlatform{
 
 public:
-MultiLoopPlatform(ENV *envx,ENVFunc *envfx,KFCStore *context ,std::string rootitername="root", int mainthreadid=999):
-    env(envx), envf(envfx) ,globalvars(context) ,rootiterator(env,envf, new KFCStore(), globalvars ,rootitername, mainthreadid){
-    ;
+MultiLoopPlatform(ENV *envx,ENVFunc *envfx,KFCStore *context ,std::string rootitername, MemoManagerByThreads* mmmgrs, ctpl::thread_pool *threadpool):
+    env(envx), envf(envfx) ,globalvarsandtask(context) ,rootiterator(env,envf, new KFCStore(), globalvarsandtask ,rootitername, mmmgrs, mmmgrs->at(mmmgrs->size() - 1),threadpool, new kfc(kfc {KS, {.s = "ExecRootTask"}})){
 }
 
 ~MultiLoopPlatform(){
-    delete globalvars;
+    delete globalvarsandtask;
 }
 
 bool startCalc(){
@@ -190,7 +192,7 @@ bool startCalc(){
 private:
 ENV *env;
 ENVFunc *envf;
-KFCStore *globalvars;
+KFCStore *globalvarsandtask;
 RecursiveIterationExecutor rootiterator;
 
 };

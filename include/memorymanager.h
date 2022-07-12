@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "consts.h"
-
+#include "logging.h"
 
 class MemoryManager;
 typedef std::map<int, MemoryManager*> MemoManagerByThreads;
@@ -66,32 +66,59 @@ void *cursor;
 long sizebytes;
 long used;
 std::vector<void *> overfillmem;
-
+             
 };
+
+
+typedef std::map<MemoryLifeCyle ,MemoryManagerSingle *> MemoryManagerSet;
 
 
 class MemoryManager{
 public:
-    std::map<std::pair<CalculationLevel, MemoryLifeCyle>, MemoryManagerSingle*> childmgrs;
+    std::map<CalculationLevel, MemoryManagerSet> childmgrs;
 
-    MemoryManager(std::map<std::pair<CalculationLevel, MemoryLifeCyle>, long> sizeconfig){
-        childmgrs = std::map<std::pair<CalculationLevel, MemoryLifeCyle>, MemoryManagerSingle*>();
-        for (auto mconfig: sizeconfig)
-            childmgrs.insert(std::make_pair(mconfig.first, new  MemoryManagerSingle(mconfig.second)));
+    MemoryManager(std::map<CalculationLevel,std::map <MemoryLifeCyle, long>> sizeconfig){
+        childmgrs = std::map<CalculationLevel, MemoryManagerSet>();
+        for (auto levelconfig: sizeconfig){
+            MemoryManagerSet levelmgr;
+            for (auto cycleconfig: levelconfig.second)
+                levelmgr.insert(std::make_pair(cycleconfig.first, new  MemoryManagerSingle(cycleconfig.second)));
+            childmgrs.insert(std::make_pair(levelconfig.first, levelmgr));
+        }
     }
 
-    MemoryManagerSingle* getChildMgr(CalculationLevel l, MemoryLifeCyle c){
-        if (childmgrs.find(std::make_pair(l,c)) == childmgrs.end())
+    MemoryManagerSet* getMemoryManagerSet(CalculationLevel l){
+        if (childmgrs.find(l) == childmgrs.end())
+        {
+            LOG(ERROR,MEMOMGR, "failed to find the mem manger set for level " << int(l) << std::endl);
             return NULL;
+        }
         else
-            return childmgrs.at(std::make_pair(l,c));
+            return &childmgrs.at(l);
     }
-    
+
+    bool resetMemoryManager(CalculationLevel l, MemoryLifeCyle c){
+        if (childmgrs.find(l) == childmgrs.end())
+        {
+            LOG(ERROR,MEMOMGR, "failed to find the mem manger set for level " << int(l) << std::endl);
+            return false;
+        }
+        else if (childmgrs.at(l).find(c) == childmgrs.at(l).end())
+        {
+            LOG(ERROR,MEMOMGR, "failed to find the mem manger set for level " << int(l) << "at cyle"<< int(c) << std::endl);
+            return false;
+        }
+        else{
+            childmgrs.at(l).at(c)->reset();
+            return true;
+        }
+
+    }
 
 };
 
 
-MemoManagerByThreads buildnmemorymgr(int n, std::map<std::pair<CalculationLevel, MemoryLifeCyle>, long> sizeconfig){
+MemoManagerByThreads buildnmemorymgr(int n,std::map<CalculationLevel,std::map <MemoryLifeCyle, long>>  sizeconfig){
         MemoManagerByThreads rtn;
         for(int i=0;i<n;i++)
             rtn.insert(std::pair<int,MemoryManager*>(i,new MemoryManager(sizeconfig)));
@@ -99,7 +126,17 @@ MemoManagerByThreads buildnmemorymgr(int n, std::map<std::pair<CalculationLevel,
 };
 
 
-
+// simple cross-product configure
+MemoManagerByThreads buildnmemorymgr(int nthread, std::vector<CalculationLevel> levels, std::vector<MemoryLifeCyle> cycles,long size){
+    std::map<CalculationLevel,std::map <MemoryLifeCyle, long>> sizeconfig;
+    for (CalculationLevel l: levels){
+        std::map <MemoryLifeCyle, long> levelconfig;
+        for (MemoryLifeCyle c: cycles)
+            levelconfig.insert(std::make_pair(c,size));
+        sizeconfig.insert(std::make_pair(l, levelconfig));
+    }
+    return buildnmemorymgr(nthread, sizeconfig);
+};
 
 
 

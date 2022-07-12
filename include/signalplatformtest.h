@@ -8,9 +8,9 @@
 
 
 
- bool sample(KFCStore* outervars, KFCStore *localvars, KFCStore *context, MemoryManager *mgr, std::iostream& out, std::string id){
-    out << "calll sample function with id" << id << std::endl;
-    out << "this is from thread" <<   std::this_thread::get_id() << std::endl;
+ bool sample( KFCStore *localvars, KFCStore *context, MemoryManagerSet &mgr){
+    LOGAndCOUT(INFO, SAMPLEF1, "calll sample function with id" << std::this_thread::get_id() << std::endl);
+    LOGAndCOUT(INFO, SAMPLEF1, "this is from thread" <<   std::this_thread::get_id() << std::endl);
      return true;
  };
 
@@ -24,7 +24,7 @@
  };
 
  
-#define MACROBUILDSAMPLEFUN(id) ([](KFCStore* outervars, KFCStore *localvars, KFCStore *context, MemoryManager *mgr, std::iostream& out){ return sample(outervars,localvars,context, mgr,out,id);})
+#define MACROBUILDSAMPLEFUN(id) ([]( KFCStore *localvars, KFCStore *context, MemoryManagerSet &mgr){ return sample(localvars,context, mgr);})
 
 
 std::pair<ENV*, ENVFunc*> buildtestconfig(std::string component1){

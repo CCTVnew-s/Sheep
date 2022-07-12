@@ -52,7 +52,7 @@ std::iostream& operator<<(std::iostream& os, const KFC& f);
 
 typedef std::map<std::string, KFC>  KFCStore;
 
-typedef bool (*IterExecFunction)(KFCStore *localvars, KFCStore *context, MemoryManager *mgr);
+typedef bool (*IterExecFunction)(KFCStore *localvars, KFCStore *context, MemoryManagerSet &mgr);
 
 typedef KFC* (*GetChildTaskFunc)(KFCStore *localvars);
 

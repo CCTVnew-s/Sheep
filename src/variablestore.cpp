@@ -145,7 +145,7 @@ GetChildTaskFunc GETENVFuncf2(ENVFunc *t, std::string c, std::string a, int p,st
 
 
 
-
+// KFC lexical 
 std::iostream& operator<<(std::iostream& os, const KFC& f)
 {
     switch (f->t)
