@@ -51,7 +51,7 @@ enum iterationerr {NOERROR=0, INIFAILED=1};
 int operator()(){
     bool init = inifromenv(env, ftable, taskcontext);
     if (!init){
-        this->logfile << "ini failed \n";
+        LOG(ERROR, EXECUTORINITAIL, "ini failed \n");
         return INIFAILED;}
     bool prejob = preloop();
     childtasks = getchildtask(localvars);
@@ -65,27 +65,27 @@ int operator()(){
     bool postjob = postloop();
 
     delete[] childtasks;
-    logfile.flush();
+    LOGFLUSH;
     return NOERROR;
 };
 bool inifromenv(ENV* , ENVFunc*, KFCStore*);
 
 template<typename T>
-static bool iniconfig(T& config, ENV* env, std::string componentname, std::string attribute, int prior, int attributtype, std::iostream &out ){
+static bool iniconfig(T& config, ENV* env, std::string componentname, std::string attribute, int prior, int attributtype){
     KFC configval;
     if (0 ==  (configval = GETENV(env,componentname,attribute,prior,out))){
-        out << "<" << componentname << "|" << attribute << "|" << prior << "> config not found" << std::endl;
+        LOG(ERROR, EXECUTORINICONFIG , "<" << componentname << "|" << attribute << "|" << prior << "> config not found" << std::endl);
         return false;
     }
     switch (attributtype)
     {
     case KI:
         config = configval->i;
-        out<< "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl;
+         LOG(DEBUG, EXECUTORINICONFIG, "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl);
         break;
     case KS:
         config = configval->s;
-        out << "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl;
+        LOG(DEBUG, EXECUTORINICONFIG, "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl);
         break;
     default:
         break;
@@ -93,9 +93,9 @@ static bool iniconfig(T& config, ENV* env, std::string componentname, std::strin
     return true;
 }
 
-static KFC getvar(KFCStore *context, std::string varname, std::iostream &out){
+static KFC getvar(KFCStore *context, std::string varname){
     if(context->find(varname) == context->end()){
-        out << "var " << varname << "not found " << std::endl;
+        LOG(ERROR, EXECUTORGETVAR, "var " << varname << "not found " << std::endl);
         return 0;
     }
     return context -> at(varname);
@@ -119,7 +119,9 @@ CalculationLevel currentlevel;
 
 // initialize from var, global tools
 std::string componentname;
-MemoManagerByThreads *memmgrs;
+MemoManagerByThreads *memmgrs; // this is just for building sub purpose
+MemoryManager *curmemmgr;
+
 ctpl::thread_pool *threadpool;
 
 // initialize from config

@@ -61,5 +61,7 @@ public:
 #define LOG(level, LOGID, info)  (LogByThread::getcurrentlog() << #level << "_" << #LOGID << " :" << info) 
 #define LOGAndCOUT(level, LOGID, info)  LogByThread::getcurrentlog() << #level << "_" << #LOGID << " :" << info; std::cout<< #level << "_" << #LOGID << " :" << info
 
+#define LOGFLUSH LogByThread::getcurrentlog().flush()
+
 
 #endif
