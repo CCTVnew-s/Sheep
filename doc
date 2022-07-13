@@ -29,3 +29,19 @@ Signal structure -- (dependency, track calculation, debug)
 ~  one class for each (type) factor
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+build 
+(base) zheshi@xhkg6696dap:~/workspace/Sheep$ gcc -DKXVER=3 ./lib/c.o  -lstdc++ -lpthread -I ./include/ ./src/kutil.cpp ./src/logging.cpp  ./src/main.cpp  ./src/SignalPlatform.cpp ./src/variablestore.cpp  -o main

@@ -1,3 +1,4 @@
+
 #ifndef SIGNALCALCULATOR
 #define SIGNALCALCULATOR
 
@@ -12,9 +13,11 @@
 
 
 
+
+
+
 // ID, and relation 
 // Very Beginning node, kdb source data -> next level ...
-
 
 
 class graphnode{
@@ -82,7 +85,7 @@ public:
 
 };
 
-
+class simplecalculator;
 // this is value nodes, it means one result, or  one column of results, or one set ofcolums, but all meanning the same thing, based on different configs (ParamSets)
 // One calc node can generate multiple output nodes, 
 // If calc node need inputs of CalcValueNode, it might explicityly specify what exactly it needs
@@ -144,7 +147,9 @@ public:
 
     bool toCalculationMap();
 
-}
+};
+
+
 
  
 

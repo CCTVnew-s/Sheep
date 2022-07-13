@@ -17,8 +17,8 @@
 
  KFC* samplegettasks(KFCStore *localvars){
      KFC *rtn = new KFC[21];
-     for(int i=0;i<21;i++)
-        rtn[i] = new kfc{KI,{.i=i}} ;
+     for(int ix=0;ix<21;ix++)
+        rtn[ix] = new kfc(kfc {KI, {.i = ix}}) ;
     rtn[20] = 0;
     return rtn; 
  };
@@ -31,10 +31,10 @@ std::pair<ENV*, ENVFunc*> buildtestconfig(std::string component1){
     ENV* test1config = new ENV();
     ENVFunc* testconfigf = new ENVFunc();
     // 
-    INSERTENV(test1config,component1,RecursiveIterationExecutor::USEMULTITHREAD_key, 0 ,new kfc{KI,{.i=0}}   );
-    INSERTENV(test1config,component1,RecursiveIterationExecutor::USERECURSIVEINLOOP_key, 0 ,new kfc{KI,{.i=0}}   );
-    INSERTENV(test1config,component1,RecursiveIterationExecutor::HASGPUTASK_key, 0 ,new kfc{KI,{.i=0}}   );
 
+    INSERTENV(test1config,component1,RecursiveIterationExecutor::USEMULTITHREAD_key, 0 ,buildKFC(0,KI)   );
+    INSERTENV(test1config,component1,RecursiveIterationExecutor::USERECURSIVEINLOOP_key, 0 ,buildKFC(0,KI)  );
+    INSERTENV(test1config,component1,RecursiveIterationExecutor::HASGPUTASK_key, 0 ,buildKFC(0,KI) );
     INSERTENV(test1config,component1,RecursiveIterationExecutor::ITERATORTASK_key, 0 ,new kfc(kfc {KS, {.s = "root"}}));
     INSERTENV(test1config,component1,RecursiveIterationExecutor::SUBITERCOMPNAME_key, 0 , new kfc(kfc{KS, {.s="DateIter"}}));
     INSERTENV(test1config,component1,RecursiveIterationExecutor::CHILDITERATORTASK_key, 0 ,new kfc(kfc{KS, {.s="Date"}}));
@@ -56,14 +56,15 @@ std::pair<ENV*, ENVFunc*> buildtestconfig2(std::string component1){
     ENV* test1config = new ENV();
     ENVFunc* testconfigf = new ENVFunc();
     // 
-    INSERTENV(test1config,component1,RecursiveIterationExecutor::USEMULTITHREAD_key, 0 ,new kfc{KI,{.i=1}}   );
-    INSERTENV(test1config,component1,RecursiveIterationExecutor::USERECURSIVEINLOOP_key, 0 ,new kfc{KI,{.i=1}}   );
-    INSERTENV(test1config,component1,RecursiveIterationExecutor::HASGPUTASK_key, 0 ,new kfc{KI,{.i=0}}   );
-
+    INSERTENV(test1config,component1,RecursiveIterationExecutor::CALCULATIONLEVEL_key, 0 ,buildKFC(0,KI)   );
+    INSERTENV(test1config,component1,RecursiveIterationExecutor::USEMULTITHREAD_key, 0 ,buildKFC(1,KI)   );
+    INSERTENV(test1config,component1,RecursiveIterationExecutor::USERECURSIVEINLOOP_key, 0 ,buildKFC(1,KI)   );
+    INSERTENV(test1config,component1,RecursiveIterationExecutor::HASGPUTASK_key, 0 ,buildKFC(0,KI)   );
     INSERTENV(test1config,component1,RecursiveIterationExecutor::ITERATORTASK_key, 0 ,new kfc(kfc {KS, {.s = "root"}}));
     INSERTENV(test1config,component1,RecursiveIterationExecutor::SUBITERCOMPNAME_key, 0 , new kfc(kfc{KS, {.s="DateIter"}}));
     INSERTENV(test1config,component1,RecursiveIterationExecutor::CHILDITERATORTASK_key, 0 ,new kfc(kfc{KS, {.s="Date"}}));
     
+
     INSERTENVFunc(testconfigf, component1, RecursiveIterationExecutor::GETCHILDTASKS_key,0, samplegettasks);
     INSERTENVFunc(testconfigf, component1, RecursiveIterationExecutor::PRELOOPFUNC_key,0, MACROBUILDSAMPLEFUN("call 1st preloop"));
     INSERTENVFunc(testconfigf, component1, RecursiveIterationExecutor::PRELOOPFUNC_key,1, MACROBUILDSAMPLEFUN("call 2nd preloop"));
@@ -75,9 +76,10 @@ std::pair<ENV*, ENVFunc*> buildtestconfig2(std::string component1){
 
     std::string component2 = "DateIter";
 
-    INSERTENV(test1config,component2,RecursiveIterationExecutor::USEMULTITHREAD_key, 0 ,new kfc{KI,{.i=0}}   );
-    INSERTENV(test1config,component2,RecursiveIterationExecutor::USERECURSIVEINLOOP_key, 0 ,new kfc{KI,{.i=0}}   );
-    INSERTENV(test1config,component2,RecursiveIterationExecutor::HASGPUTASK_key, 0 ,new kfc{KI,{.i=0}}   );
+    INSERTENV(test1config,component2,RecursiveIterationExecutor::CALCULATIONLEVEL_key, 0 ,buildKFC(100,KI)   );
+    INSERTENV(test1config,component2,RecursiveIterationExecutor::USEMULTITHREAD_key, 0 ,buildKFC(0,KI)   );
+    INSERTENV(test1config,component2,RecursiveIterationExecutor::USERECURSIVEINLOOP_key, 0 ,buildKFC(0,KI)   );
+    INSERTENV(test1config,component2,RecursiveIterationExecutor::HASGPUTASK_key, 0 ,buildKFC(0,KI)   );
 
     INSERTENV(test1config,component2,RecursiveIterationExecutor::ITERATORTASK_key, 0 ,new kfc(kfc {KS, {.s = "Date"}}));
     INSERTENV(test1config,component2,RecursiveIterationExecutor::SUBITERCOMPNAME_key, 0 , new kfc(kfc{KS, {.s="SymbolIter"}}));

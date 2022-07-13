@@ -1,14 +1,34 @@
 #include "variablestore.h"
 #include "signalplatform.h"
 #include "signalplatformtest.h"
+#include "memorymanager.h"
 #include <iostream>
 #include <thread>
 #include <cstring>
 
+#include <unistd.h>
+#include <limits.h>
 
+#include "testlist.h"
 #define NUMTHREAD 5
 
 
+
+bool testpart(RUNENV e){
+    // testthreadpool(1,NULL);
+    ktoounittest(e);
+    return false;
+}
+
+
+RUNENV getenv(){
+    char hostname[HOST_NAME_MAX];
+    char username[LOGIN_NAME_MAX];
+    gethostname(hostname, HOST_NAME_MAX);
+    getlogin_r(username, LOGIN_NAME_MAX);
+    std::string host(hostname);
+    return host.find("10297") == std::string::npos ? RUNENV::h1 : RUNENV::w1;
+};
 
 
 
@@ -16,25 +36,35 @@
 
 int main(){
 
-    KFCStore *globalcontext = new KFCStore();
+
+
+   // const auto host_name = boost::asio::ip::host_name();
+
+    std::cout << getenv();
+     testpart( getenv());
+
 
     auto memorymgr = buildnmemorymgr(NUMTHREAD + 1,std::vector<CalculationLevel>{CalculationLevel::Top, CalculationLevel::Date, CalculationLevel::Signal},
-    std::vector<MemoryLifeCyle>{MemoryLifeCyle::Global, MemoryLifeCyle::SinglePhase, MemoryLifeCyle::Task},1024L*1024L*1024L*2L);
+    
+    std::vector<MemoryLifeCyle>{MemoryLifeCyle::Global, MemoryLifeCyle::Task, MemoryLifeCyle::SingleTaskPhase},1024L*1024L*1024L*2L);
+    
     ctpl::thread_pool workers(NUMTHREAD);
 
-    I datahandle = khpunc("localhost", 8939, "",1000, 1);
+    LogByThread::initializeservice(NUMTHREAD);
 
-
-
+    // FULL Memory and Full LOG/THREAD, any valid config should work
+    // I datahandle = khpunc("localhost", 8939, "",1000, 1);
 
 
     // globalcontext->insert(std::make_pair(RecursiveIterationExecutor::MEMEORYMANAGERS_key, new kfc(kfc{KPtr,{.p = (void *)&memorymgr}})));
     // globalcontext->insert(std::make_pair(RecursiveIterationExecutor::THREADPOOLS_key,  new kfc(kfc{KPtr,{.p = (void *)&workers}})));
-    globalcontext->insert(std::make_pair("root",new kfc(kfc{KS,{.s="SignalCalculation"}})));
+    KFCStore *globalcontext = new KFCStore();
+    KFC roottask = new kfc(kfc{KS,{.s="TestConfigure"}});
+    globalcontext->insert(std::make_pair("root",roottask));
  
     auto configs = buildtestconfig2("firstleveliterator");
  
-    MultiLoopPlatform platform(configs.first, configs.second, globalcontext,"firstleveliterator",&memorymgr, &workers);
+    MultiLoopPlatform platform(configs.first, configs.second, globalcontext,"firstleveliterator",&memorymgr, &workers,roottask);
     platform.startCalc();
     return 0;
 }

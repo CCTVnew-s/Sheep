@@ -56,6 +56,8 @@ int operator()(){
     if (!init){
         LOG(ERROR, EXECUTORINITAIL, "ini failed \n");
         return INIFAILED;}
+    MemoryManagerSet& m = *(this->curmemmgr->getMemoryManagerSet(currentlevel));
+
     bool prejob = preloop();
     childtasks = getchildtask(localvars);
 
@@ -67,34 +69,37 @@ int operator()(){
         gpustate = joingpu();
     bool postjob = postloop();
 
+    if (m.find(MemoryLifeCyle::Task)==m.end())
+        LOG(CRITIAL,execute, EXECUTORID<< "no task level memory, ignore reset\n");
+    else{
+        LOG(INFO,execute, EXECUTORID<< "reset task level local memory\n");
+        m.at(MemoryLifeCyle::Task)->reset();
+    }    
+
     delete[] childtasks;
     LOGFLUSH;
     return NOERROR;
 };
 bool inifromenv(ENV* , ENVFunc*, KFCStore*);
 
-template<typename T>
-static bool iniconfig(T& config, ENV* env, std::string componentname, std::string attribute, int prior, int attributtype, bool isenum=false){
-    KFC configval;
-    if (0 ==  (configval = GETENV(env,componentname,attribute,prior))){
-        LOG(ERROR, EXECUTORINICONFIG ,  "<" << componentname << "|" << attribute << "|" << prior << "> config not found" << std::endl);
-        return false;
-    }
-    switch (attributtype)
-    {
-    case KI:
-         config = configval->i;
-         LOG(DEBUG, EXECUTORINICONFIG,  "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl);
-        break;
-    case KS:
-        config = configval->s;
-        LOG(DEBUG, EXECUTORINICONFIG,  "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl);
-        break;
-    default:
-        break;
-    }
-    return true;
-}
+
+#define INICONFIGTEMPLATE(type,typeid)                                                                                                           \
+static bool iniconfig(type& config, ENV* env, std::string componentname, const std::string attribute, int prior){                                      \
+    KFC configval;                                                                                                                               \
+    if (0 ==  (configval = GETENV(env,componentname,attribute,prior))){                                                                          \
+        LOG(ERROR, EXECUTORINICONFIG ,  "<" << componentname << "|" << attribute << "|" << prior << "> config not found" << std::endl);          \
+        return false;                                                                                                                            \
+    }                                                                                                                                            \
+    config = configval->typeid;                                                                                                                  \
+    LOG(DEBUG, EXECUTORINICONFIG,  "config set " << componentname << "|" << attribute << "|" << prior <<  "> set to " << config << std::endl);   \
+    return true;}                                                                                                                                \
+
+INICONFIGTEMPLATE(int,i)
+INICONFIGTEMPLATE(std::string,s)
+INICONFIGTEMPLATE(bool,i)
+
+
+
 
 static KFC getvar(KFCStore *context, std::string varname){
     if(context->find(varname) == context->end()){
@@ -177,8 +182,8 @@ static const std::string CALCULATIONLEVEL_key;
 class MultiLoopPlatform: public BasSignalPlatform{
 
 public:
-MultiLoopPlatform(ENV *envx,ENVFunc *envfx,KFCStore *context ,std::string rootitername, MemoManagerByThreads* mmmgrs, ctpl::thread_pool *threadpool):
-    env(envx), envf(envfx) ,globalvarsandtask(context) ,rootiterator(env,envf, new KFCStore(), globalvarsandtask ,rootitername, mmmgrs, mmmgrs->at(mmmgrs->size() - 1),threadpool, new kfc(kfc {KS, {.s = "ExecRootTask"}})){
+MultiLoopPlatform(ENV *envx,ENVFunc *envfx,KFCStore *context ,std::string rootitername, MemoManagerByThreads* mmmgrs, ctpl::thread_pool *threadpool, KFC currenttask = new kfc(kfc {KS, {.s = "ExecRootTask"}})):
+    env(envx), envf(envfx) ,globalvarsandtask(context) ,rootiterator(env,envf, new KFCStore(), globalvarsandtask ,rootitername, mmmgrs, mmmgrs->at(mmmgrs->size() - 1),threadpool, currenttask){
 }
 
 ~MultiLoopPlatform(){

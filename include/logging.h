@@ -46,8 +46,24 @@ public:
             return false;
     };
 
-    static std::fstream& getcurrentlog(){
+    static bool bundlecurrentidwithID(int ID){
+        std::thread::id cid = std::this_thread::get_id();
+        if (lookuptable.find(cid) == lookuptable.end()){
+            lookuptable.insert(std::make_pair(cid, ID));
+            return true;
+        }
+        else
+            return false;
+    };
+
+    static std::ostream& getcurrentlog(){
         std::thread::id currentid = std::this_thread::get_id();
+        if (logs.find(DEFAULTSTREAM) == logs.end() &&  lookuptable.find(currentid) == lookuptable.end())
+        {
+            std::cout << "no log is configuired, will use standard output" << std::endl;
+            return std::cout;
+        }
+
         if (lookuptable.find(currentid) == lookuptable.end()){
              return *logs.at(DEFAULTSTREAM);
         }

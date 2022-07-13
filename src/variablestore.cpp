@@ -1,6 +1,12 @@
 #include "variablestore.h"
 #include "logging.h"
 
+
+
+
+
+
+
 bool INSERTENV(ENV *t, std::string c, std::string a, int p, KFC val){
     if (t->find(c) == t->end())
         t->insert(std::make_pair(c,new std::map<std::string, std::map<int, KFC>*>()));
@@ -107,7 +113,7 @@ IterExecFunction GETENVFuncf1(ENVFunc *t, std::string c, std::string a, int p){
 
 
 
-GetChildTaskFunc GETENVFuncf2(ENVFunc *t, std::string c, std::string a, int p,std::iostream &out){
+GetChildTaskFunc GETENVFuncf2(ENVFunc *t, std::string c, std::string a, int p){ 
     if (t->find(c)== t->end()){
       LOGAndCOUT(ERROR,GetTaskFuncEnv, "config not found key " << c << std::endl);
         return EMPTYITER;
@@ -146,7 +152,7 @@ GetChildTaskFunc GETENVFuncf2(ENVFunc *t, std::string c, std::string a, int p,st
 
 
 // KFC lexical 
-std::iostream& operator<<(std::iostream& os, const KFC& f)
+std::ostream& operator<<(std::ostream& os, const KFC& f)
 {
     switch (f->t)
     {
@@ -155,10 +161,28 @@ std::iostream& operator<<(std::iostream& os, const KFC& f)
         os << f->i;
         break;
     case KS:
-        os << f->s;
+        os << std::string(f->s);
         break;
     default:
         break;
     }
     return os;
 };
+
+
+
+#define KCFBUILDFACTORY(type,typeloc)        \
+KFC buildKFC(type val, int id) {         \
+    KFC rtn = new kfc();                     \  
+    rtn->t = id;                         \
+    rtn->typeloc = val;                      \
+    return rtn;}                             \
+
+KCFBUILDFACTORY(I,i);
+KCFBUILDFACTORY(S,s);
+KCFBUILDFACTORY(H,h);
+KCFBUILDFACTORY(J,j);
+KCFBUILDFACTORY(E,e);
+KCFBUILDFACTORY(F,f);
+KCFBUILDFACTORY(void*,p);
+KCFBUILDFACTORY(tableview *,k);

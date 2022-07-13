@@ -29,7 +29,7 @@ void ugu(int id, Third & t) {
     std::cout << "hello from " << id << ", function with parameter Third " << t.v <<'\n';
 }
 
-int main(int argc, char **argv) {
+int testthreadpool(int argc, char **argv) {
     ctpl::thread_pool p(4 /* two threads in the pool */);
 
     // testing logging as well

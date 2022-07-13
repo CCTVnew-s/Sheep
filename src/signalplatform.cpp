@@ -24,10 +24,17 @@ RecursiveIterationExecutor::RecursiveIterationExecutor(ENV *env, ENVFunc *envf, 
 bool RecursiveIterationExecutor::preloop(){
     LOG(INFO,executepreloop, EXECUTORID<< "calling preloop now" <<  std::endl);    
     bool rtn = true;
+    MemoryManagerSet& m = *(this->curmemmgr->getMemoryManagerSet(currentlevel));
     for (auto f: preloopfuncs)
     {
-        rtn &= f.second( localvars, taskcontext, *(this->curmemmgr->getMemoryManagerSet(currentlevel)));
-    }       
+        rtn &= f.second( localvars, taskcontext, m);
+    }
+    if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
+        LOG(CRITIAL,executepreloop, EXECUTORID<< "no phase local memory, ignore reset\n");
+    else{
+        LOG(INFO,executepreloop, EXECUTORID<< "reset single phase local memory\n");
+        m.at(MemoryLifeCyle::SingleTaskPhase)->reset();
+    }
     return rtn;
 }
 
@@ -35,6 +42,8 @@ bool RecursiveIterationExecutor::executeloop(){
     LOG(INFO,executepreloop,EXECUTORID << "calling executeloop now" << std::endl);
     KFC *currentchildtask = childtasks;
 
+    bool rtn = true;
+    MemoryManagerSet& m = *(this->curmemmgr->getMemoryManagerSet(currentlevel));
 
     if (execloopwithiter){
 
@@ -46,6 +55,7 @@ bool RecursiveIterationExecutor::executeloop(){
     while( (*currentchildtask) != 0){
         if (usemultthread)
             threadpool->push( [this](int i, RecursiveIterationExecutor* exec, KFC currenttask ){
+               LogByThread::bundlecurrentidwithID(i);
                auto child = exec->createChildIterator(currenttask, this->memmgrs->at(i) );
                (*child)();
             }, this, *currentchildtask  );
@@ -58,6 +68,8 @@ bool RecursiveIterationExecutor::executeloop(){
 
     if(usemultthread){
         threadpool->stop(true);
+        threadpool->reset();
+
         LOG(INFO,executeloop,EXECUTORID   << "all threads completed" <<  std::endl);
     } else{
         LOG(INFO,executeloop,EXECUTORID   << "all tasks completed" <<  std::endl);
@@ -65,25 +77,40 @@ bool RecursiveIterationExecutor::executeloop(){
     }
     else{
 
-    bool rtn = true;
     for (auto f: execloopfuncs)
     {
         LOG(INFO,executeloop,EXECUTORID   << "call " << f.first << "function" << std::endl);
-        rtn &= f.second(localvars, taskcontext,  *(this->curmemmgr->getMemoryManagerSet(currentlevel)));
-    }       
+        rtn &= f.second(localvars, taskcontext, m);
+    }
+    }
+    
+
+    if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
+        LOG(CRITIAL,executeloop, EXECUTORID<< "no phase local memory, ignore reset \n");
+    else{
+        LOG(INFO,executeloop, EXECUTORID<< "reset single phase local memory \n");
+        m.at(MemoryLifeCyle::SingleTaskPhase)->reset();
+    }
     return rtn;
 
-    }
 }
 
 bool RecursiveIterationExecutor::postloop(){
     LOG(INFO,executepostloop,EXECUTORID  << "calling postloop now" << std::endl);    
     bool rtn = true;
+    MemoryManagerSet& m = *(this->curmemmgr->getMemoryManagerSet(currentlevel));
+
     for (auto f: postloopfuncs)
     {
          LOG(INFO,executepostloop,EXECUTORID << "call " << f.first << "function" << std::endl);
         rtn &= f.second(localvars, taskcontext, *(this->curmemmgr->getMemoryManagerSet(currentlevel)));
-    }       
+    }
+    if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
+        LOG(CRITIAL,executepostloop, EXECUTORID<< "no phase local memory, ignore reset \n");
+    else{
+        LOG(INFO,executepostloop, EXECUTORID<< "reset single phase local memory \n");
+        m.at(MemoryLifeCyle::SingleTaskPhase)->reset();
+    }
     return rtn;
 }
 
@@ -91,11 +118,20 @@ bool RecursiveIterationExecutor::postloop(){
 bool RecursiveIterationExecutor::callgpu(){
     LOG(INFO,executeGPU,EXECUTORID << "calling callgpu now" << std::endl);
     bool rtn = true;
+    MemoryManagerSet& m = *(this->curmemmgr->getMemoryManagerSet(currentlevel));
+
     for (auto f: gpufuncs)
     {
         LOG(INFO,executeGPU,EXECUTORID << "call " << f.first << "function" << std::endl);
         rtn &= f.second(localvars, taskcontext,  *(this->curmemmgr->getMemoryManagerSet(currentlevel)));
-    }       
+    }
+    
+    if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
+        LOG(CRITIAL,executeGPU, EXECUTORID<< "no phase local memory, ignore reset \n");
+    else{
+        LOG(INFO,executeGPU, EXECUTORID<< "reset single phase local memory \n");
+        m.at(MemoryLifeCyle::SingleTaskPhase)->reset();
+    }
     return rtn;
 }
 
@@ -120,17 +156,19 @@ bool RecursiveIterationExecutor::inifromenv(ENV *env, ENVFunc *envf, KFCStore *c
     bool rtn = true;
     // initialzie from configs
     int levelconfig;
-    rtn &= iniconfig(levelconfig, this->env, this->componentname, CALCULATIONLEVEL_key, 0, KI,true);
+    rtn &= iniconfig(levelconfig, this->env, this->componentname, CALCULATIONLEVEL_key, 0);
     this->currentlevel = static_cast<CalculationLevel>(levelconfig);
-    rtn &= iniconfig(this->usemultthread, this->env, this->componentname,USEMULTITHREAD_key,0, KI);
-    rtn &= iniconfig(this->execloopwithiter, this->env, this->componentname, USERECURSIVEINLOOP_key,0, KI );
-    rtn &= iniconfig(this->hasGPUtask, this->env, this->componentname, HASGPUTASK_key,0, KI );
-    rtn &= iniconfig(this->itertaskname, this->env, this->componentname, ITERATORTASK_key,0, KS);
+    LOG(INFO,EXECUTORINI, EXECUTORID << CALCULATIONLEVEL_key << "has loaded at " << int(this->currentlevel)  << std::endl);
+
+    rtn &= iniconfig(this->usemultthread, this->env, this->componentname,USEMULTITHREAD_key,0);
+    rtn &= iniconfig(this->execloopwithiter, this->env, this->componentname, USERECURSIVEINLOOP_key,0 );
+    rtn &= iniconfig(this->hasGPUtask, this->env, this->componentname, HASGPUTASK_key,0);
+    rtn &= iniconfig(this->itertaskname, this->env, this->componentname, ITERATORTASK_key,0);
     
     if (execloopwithiter)
     {
-        rtn &= iniconfig(this->subitercomponentname, this->env, this->componentname, SUBITERCOMPNAME_key,0, KS );
-        rtn &= iniconfig(this->subitertaskname, this->env, this->componentname, CHILDITERATORTASK_key,0, KS );
+        rtn &= iniconfig(this->subitercomponentname, this->env, this->componentname, SUBITERCOMPNAME_key,0 );
+        rtn &= iniconfig(this->subitertaskname, this->env, this->componentname, CHILDITERATORTASK_key,0 );
     }
     if (!rtn)
         return rtn;

@@ -1,7 +1,11 @@
 #include "signalcalculator.h"
 
 
- std::set<std::string>  graphnode::allgraphnames = std::set<std::string>();
+// Need to think about test memory, also the task context
+// Linking to kdb nowls
+
+
+  std::set<std::string>  graphnode::allgraphnames = std::set<std::string>();
 
 
 graphnode::graphnode(std::vector<graphnode*> u,std::string n, std::string d){
