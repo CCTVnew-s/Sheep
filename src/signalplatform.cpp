@@ -5,7 +5,7 @@
 using std::string;
 
 
-RecursiveIterationExecutor::RecursiveIterationExecutor(ENV *env, ENVFunc *envf, KFCStore *creatervars, KFCStore *taskcontext, std::string componentname, MemoManagerByThreads* mmmgrs, MemoryManager* curmmmgr, ctpl::thread_pool *threadpool, KFC currenttask){
+RecursiveIterationExecutor::RecursiveIterationExecutor(ENV *env, ENVFunc *envf, KFCStore *creatervars, KFCStore *taskcontext, std::string componentname, MemoManagerByThreads* mmmgrs, MemoryManager* curmmmgr, ctpl::thread_pool *threadpool,  std::map<CalculationLevel,KFC> currenttask){
     this->env = env;
     this->ftable = envf;
     this->uppervars = creatervars;
@@ -27,7 +27,7 @@ bool RecursiveIterationExecutor::preloop(){
     MemoryManagerSet& m = *(this->curmemmgr->getMemoryManagerSet(currentlevel));
     for (auto f: preloopfuncs)
     {
-        rtn &= f.second( localvars, taskcontext, m);
+        rtn &= f.second( localvars, taskcontext, m, currenttask);
     }
     if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
         LOG(CRITIAL,executepreloop, EXECUTORID<< "no phase local memory, ignore reset\n");
@@ -80,7 +80,7 @@ bool RecursiveIterationExecutor::executeloop(){
     for (auto f: execloopfuncs)
     {
         LOG(INFO,executeloop,EXECUTORID   << "call " << f.first << "function" << std::endl);
-        rtn &= f.second(localvars, taskcontext, m);
+        rtn &= f.second(localvars, taskcontext, m, currenttask);
     }
     }
     
@@ -103,7 +103,7 @@ bool RecursiveIterationExecutor::postloop(){
     for (auto f: postloopfuncs)
     {
          LOG(INFO,executepostloop,EXECUTORID << "call " << f.first << "function" << std::endl);
-        rtn &= f.second(localvars, taskcontext, *(this->curmemmgr->getMemoryManagerSet(currentlevel)));
+        rtn &= f.second(localvars, taskcontext, *(this->curmemmgr->getMemoryManagerSet(currentlevel)), currenttask);
     }
     if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
         LOG(CRITIAL,executepostloop, EXECUTORID<< "no phase local memory, ignore reset \n");
@@ -123,7 +123,7 @@ bool RecursiveIterationExecutor::callgpu(){
     for (auto f: gpufuncs)
     {
         LOG(INFO,executeGPU,EXECUTORID << "call " << f.first << "function" << std::endl);
-        rtn &= f.second(localvars, taskcontext,  *(this->curmemmgr->getMemoryManagerSet(currentlevel)));
+        rtn &= f.second(localvars, taskcontext,  *(this->curmemmgr->getMemoryManagerSet(currentlevel)), currenttask);
     }
     
     if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
@@ -144,7 +144,9 @@ bool RecursiveIterationExecutor::joingpu(){
 RecursiveIterationExecutor * RecursiveIterationExecutor::createChildIterator(KFC childtask, MemoryManager *childmgr){
         KFCStore * childcontext = new KFCStore(*taskcontext);
         childcontext->insert(std::make_pair(subitertaskname, childtask));
-        RecursiveIterationExecutor * rtn = new RecursiveIterationExecutor(env, ftable, localvars, childcontext,subitercomponentname,this->memmgrs,childmgr, this->threadpool, childtask);
+        std::map<CalculationLevel, KFC> childtasktree(currenttask);
+        childtasktree.insert(std::make_pair(subitertasklevel, childtask));
+        RecursiveIterationExecutor * rtn = new RecursiveIterationExecutor(env, ftable, localvars, childcontext,subitercomponentname,this->memmgrs,childmgr, this->threadpool, childtasktree);
         LOG(INFO, EXECUTROCREATCHILDTASK, EXECUTORID << "child iterator is created for task " << childtask  << std::endl);
         return rtn; 
 }
@@ -165,10 +167,19 @@ bool RecursiveIterationExecutor::inifromenv(ENV *env, ENVFunc *envf, KFCStore *c
     rtn &= iniconfig(this->hasGPUtask, this->env, this->componentname, HASGPUTASK_key,0);
     rtn &= iniconfig(this->itertaskname, this->env, this->componentname, ITERATORTASK_key,0);
     
+
+    // things need to know about your child, next name, next level, taskname --> legacy get task from context
     if (execloopwithiter)
     {
         rtn &= iniconfig(this->subitercomponentname, this->env, this->componentname, SUBITERCOMPNAME_key,0 );
         rtn &= iniconfig(this->subitertaskname, this->env, this->componentname, CHILDITERATORTASK_key,0 );
+        int subiterlevel;
+        rtn &= iniconfig(subiterlevel, this->env, this->componentname, SUBITERCALCULATIONLEVEL_key, 0);
+        this->subitertasklevel = static_cast<CalculationLevel>(subiterlevel);
+        bool valid = subitertasklevel > currentlevel;
+        if (!valid)
+                LOG(INFO,EXECUTORINI, EXECUTORID << "sub iter level "<< int(subitertasklevel) << " is not greater than current level " << int(currentlevel)   << std::endl);
+        rtn &= valid;
     }
     if (!rtn)
         return rtn;
@@ -234,6 +245,7 @@ const string RecursiveIterationExecutor::EXECLOOPFUNC_key = "EXECLOOPFUNCs";
 const string RecursiveIterationExecutor::GPUFUNC_key = "GPUFUNCs";
 const string RecursiveIterationExecutor::GETCHILDTASKS_key = "GetChildTasks";
 const string RecursiveIterationExecutor::CALCULATIONLEVEL_key = "GetCalculationLevel";
+const string RecursiveIterationExecutor::SUBITERCALCULATIONLEVEL_key = "GetSubIterCalculationLevel";
 
 
 

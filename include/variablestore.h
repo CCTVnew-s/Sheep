@@ -72,7 +72,7 @@ class tableview;
 
 // we need sth similar here, one class for every type, then it can be "stored"
 
-typedef struct kfc{int t;union{H h;I i;J j;E e;F f;S s;void* p;tableview *k;struct{J n;void* G0;};};} *KFC;
+typedef struct kfc{int t;union{H h;I i;J j;E e;F f;S s; void* p;tableview *k;struct{J n;void* G0;};};} *KFC;
 #define EMPTYKFC 0
 
 #define DECKFCBUILD(type)  KFC buildKFC(type, int);
@@ -85,6 +85,15 @@ DECKFCBUILD(S)
 DECKFCBUILD(void *)
 DECKFCBUILD(tableview*)
 
+template<typename T>
+KFC buildsKFCs(T p, int type, int size){
+    KFC rtn = new kfc();
+    rtn->t = - type;
+    rtn->n = size;
+    rtn->G0 = (void*) p;
+    return rtn;
+};
+
 
 std::ostream& operator<<(std::ostream& os, const KFC& f);
 
@@ -94,9 +103,9 @@ std::ostream& operator<<(std::ostream& os, const KFC& f);
 
 typedef std::map<std::string, KFC>  KFCStore;
 
-typedef bool (*IterExecFunction)(KFCStore *localvars, KFCStore *context, MemoryManagerSet &mgr);
+typedef bool (*IterExecFunction)(KFCStore *localvars, KFCStore *context, MemoryManagerSet &mgr, std::map<CalculationLevel, KFC> currentask);
 
-typedef KFC* (*GetChildTaskFunc)(KFCStore *localvars);
+typedef KFC* (*GetChildTaskFunc)(KFCStore *localvars, std::map<CalculationLevel, KFC> currentask);
 
 struct funvariant {IterExecFunction f1; GetChildTaskFunc f2;} ;
 

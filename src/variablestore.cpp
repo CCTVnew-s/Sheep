@@ -156,15 +156,26 @@ std::ostream& operator<<(std::ostream& os, const KFC& f)
 {
     switch (f->t)
     {
-    case KI:
+    case KI:{
         /* code */
         os << f->i;
-        break;
-    case KS:
+        break;}
+    case KS:{
         os << std::string(f->s);
+        break;}
+    case KD:{
+        os << "Date 2000.01.01 + " << f->i;
+        break;}
+    case - KD:{
+        os << "Dates array L " << f->n << "\n";
+        for (int i=0;i<f->n;i++){
+            os << "Date 2000.01.01 + " << ((I*)f->G0)[i] << "\n";
+        }
         break;
+    }
+    // other arrays to be filled
     default:
-        break;
+        os << "sth can't be present yet";
     }
     return os;
 };

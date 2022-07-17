@@ -1,10 +1,9 @@
+#include "consts.h"
 #include "kutil.h"
 #include "k.h"
 #include <iostream>
 #include "testlist.h"
-
-
-#define KTIMEOUT 600000
+#include "kdbnode.h"
 
 
 int testtableview(I datahandle, RUNENV e){
@@ -60,12 +59,26 @@ int testtableview(I datahandle, RUNENV e){
 
 
 
+int testcalculator(I handle, RUNENV e, MemoryManager *m){
+    KFCStore cachefortest;
+    generalcalculator *g1 = new kdbsetup(e,handle,ymd(2021,1,1),ymd(2021,2,1)); 
+    g1->unittest(&cachefortest, m);
+    g1->serializecalctrace();
+
+
+
+
+
+    return 1;
+}
+
 
 
 
 int ktoounittest(RUNENV e){
 
-    I testhandle = khpunc("localhost", e==RUNENV::h1?8939:9002, "",KTIMEOUT, 1);
-    testtableview(testhandle, e);
+    I testhandle = khpunc("localhost", e==RUNENV::h1?8939:9002, "",60000, 1);    
+     testtableview(testhandle, e);
+
 
 }

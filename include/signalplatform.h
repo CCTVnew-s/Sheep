@@ -31,7 +31,7 @@ bool  startCalc() {return false;};
 // organize iteration of tasks, might take a recursive approach
 
 
-#define EXECUTORID  " exectask " << currenttask << " :" 
+#define EXECUTORID  " exectask " << currenttask.at(currentlevel) << " :" 
 
 
 class RecursiveIterationExecutor{
@@ -39,7 +39,7 @@ class RecursiveIterationExecutor{
 public:
 enum loopexecmode {SingleThread, ThreadPool};
 
-RecursiveIterationExecutor(ENV *env, ENVFunc *envf, KFCStore *creatervars, KFCStore *taskcontext, std::string componentname, MemoManagerByThreads* mmmgrs, MemoryManager* curmmmgr, ctpl::thread_pool *threadpool, KFC currenttask=EMPTYKFC);
+RecursiveIterationExecutor(ENV *env, ENVFunc *envf, KFCStore *creatervars, KFCStore *taskcontext, std::string componentname, MemoManagerByThreads* mmmgrs, MemoryManager* curmmmgr, ctpl::thread_pool *threadpool, std::map<CalculationLevel,KFC> currenttask);
 
 // Intialize its own localvars
 bool preloop();
@@ -59,7 +59,7 @@ int operator()(){
     MemoryManagerSet& m = *(this->curmemmgr->getMemoryManagerSet(currentlevel));
 
     bool prejob = preloop();
-    childtasks = getchildtask(localvars);
+    childtasks = getchildtask(localvars,currenttask);
 
     bool gpustate = true;
     if (hasGPUtask)
@@ -133,12 +133,15 @@ ctpl::thread_pool *threadpool;
 // initialize from config
 bool usemultthread;
 bool execloopwithiter;
-std::string subitercomponentname;
-bool hasGPUtask;
 std::string itertaskname;
-std::string subitertaskname;
-CalculationLevel currentlevel;
 
+bool hasGPUtask;
+CalculationLevel currentlevel;
+std::map<CalculationLevel,KFC> currenttask;
+
+std::string subitercomponentname;
+std::string subitertaskname;
+CalculationLevel subitertasklevel;
 
 
 std::map<int, IterExecFunction> preloopfuncs;
@@ -150,7 +153,7 @@ std::map<int, IterExecFunction> gpufuncs;
 // initialize from configured func
 // vars created for this loop
 KFCStore *localvars;
-KFC currenttask;
+
 KFC* childtasks;
 GetChildTaskFunc getchildtask;
 
@@ -173,6 +176,8 @@ static const std::string ITERATORTASK_key;
 static const std::string CHILDITERATORTASK_key;
 static const std::string GETCHILDTASKS_key;
 static const std::string CALCULATIONLEVEL_key;
+static const std::string SUBITERCALCULATIONLEVEL_key;
+
 
 
 };
@@ -182,8 +187,8 @@ static const std::string CALCULATIONLEVEL_key;
 class MultiLoopPlatform: public BasSignalPlatform{
 
 public:
-MultiLoopPlatform(ENV *envx,ENVFunc *envfx,KFCStore *context ,std::string rootitername, MemoManagerByThreads* mmmgrs, ctpl::thread_pool *threadpool, KFC currenttask = new kfc(kfc {KS, {.s = "ExecRootTask"}})):
-    env(envx), envf(envfx) ,globalvarsandtask(context) ,rootiterator(env,envf, new KFCStore(), globalvarsandtask ,rootitername, mmmgrs, mmmgrs->at(mmmgrs->size() - 1),threadpool, currenttask){
+MultiLoopPlatform(ENV *envx,ENVFunc *envfx,KFCStore *context ,std::string rootitername, MemoManagerByThreads* mmmgrs, ctpl::thread_pool *threadpool, KFC curtoptask = new kfc(kfc {KS, {.s = "ExecRootTask"}})):
+    env(envx), envf(envfx) ,globalvarsandtask(context) ,rootiterator(env,envf, new KFCStore(), globalvarsandtask ,rootitername, mmmgrs, mmmgrs->at(mmmgrs->size() - 1),threadpool, {{CalculationLevel::Top, curtoptask}}){
 }
 
 ~MultiLoopPlatform(){
@@ -202,6 +207,9 @@ RecursiveIterationExecutor rootiterator;
 
 };
 
+
+// will need some configure builder to link up parent and child executors
+// things need for link    1) child executor name 2) child task search eky 3) child 
 
 
 
