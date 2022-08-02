@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include "logging.h"
+#include "memorymanager.h"
 // translate kdb table
 
 
@@ -39,7 +40,7 @@ tableview(const K &kt){
       table.insert(std::make_pair(colstr, (void *)kK(cols)[coli]->G0));
       tablemeta.insert(std::make_pair(colstr, int(kK(cols)[coli]->t)));
       // debug
-      //std::cout << "col " << colstr << "type " << int((kK(cols)[coli])->t) << std:: endl;
+      std::cout << "col " << colstr << "type " << int((kK(cols)[coli])->t) << std:: endl;
     }    
 }
 // create sub view
@@ -70,6 +71,23 @@ K extendAxisTable(K &axis, std::map<std::string, int> extendcolmeta);
 
 // eventually result will be a K Table, we will either set back to kdb q process, or store it as hdb
 
+class KDestructor: public destroyer{
+public:
+  KDestructor(): _imp(0) {};
+  KDestructor(K x) :_imp(x) {};
+  K _imp;
+
+  void setK(K x){
+    _imp = x;
+  };
+
+   ~ KDestructor(){
+    std::cout << _imp->r << "remove K, K number \n" ;
+    if (_imp != 0)
+      r0(_imp);
+  };
+
+};
 
 
 

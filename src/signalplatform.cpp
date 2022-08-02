@@ -29,11 +29,11 @@ bool RecursiveIterationExecutor::preloop(){
     {
         rtn &= f.second( localvars, taskcontext, m, currenttask);
     }
-    if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
+    if (m.find(MemoryLifeCyle::SinglePhase)==m.end())
         LOG(CRITIAL,executepreloop, EXECUTORID<< "no phase local memory, ignore reset\n");
     else{
         LOG(INFO,executepreloop, EXECUTORID<< "reset single phase local memory\n");
-        m.at(MemoryLifeCyle::SingleTaskPhase)->reset();
+        m.at(MemoryLifeCyle::SinglePhase)->reset();
     }
     return rtn;
 }
@@ -85,11 +85,11 @@ bool RecursiveIterationExecutor::executeloop(){
     }
     
 
-    if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
+    if (m.find(MemoryLifeCyle::SinglePhase)==m.end())
         LOG(CRITIAL,executeloop, EXECUTORID<< "no phase local memory, ignore reset \n");
     else{
         LOG(INFO,executeloop, EXECUTORID<< "reset single phase local memory \n");
-        m.at(MemoryLifeCyle::SingleTaskPhase)->reset();
+        m.at(MemoryLifeCyle::SinglePhase)->reset();
     }
     return rtn;
 
@@ -105,11 +105,11 @@ bool RecursiveIterationExecutor::postloop(){
          LOG(INFO,executepostloop,EXECUTORID << "call " << f.first << "function" << std::endl);
         rtn &= f.second(localvars, taskcontext, *(this->curmemmgr->getMemoryManagerSet(currentlevel)), currenttask);
     }
-    if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
+    if (m.find(MemoryLifeCyle::SinglePhase)==m.end())
         LOG(CRITIAL,executepostloop, EXECUTORID<< "no phase local memory, ignore reset \n");
     else{
         LOG(INFO,executepostloop, EXECUTORID<< "reset single phase local memory \n");
-        m.at(MemoryLifeCyle::SingleTaskPhase)->reset();
+        m.at(MemoryLifeCyle::SinglePhase)->reset();
     }
     return rtn;
 }
@@ -126,11 +126,11 @@ bool RecursiveIterationExecutor::callgpu(){
         rtn &= f.second(localvars, taskcontext,  *(this->curmemmgr->getMemoryManagerSet(currentlevel)), currenttask);
     }
     
-    if (m.find(MemoryLifeCyle::SingleTaskPhase)==m.end())
+    if (m.find(MemoryLifeCyle::SinglePhase)==m.end())
         LOG(CRITIAL,executeGPU, EXECUTORID<< "no phase local memory, ignore reset \n");
     else{
         LOG(INFO,executeGPU, EXECUTORID<< "reset single phase local memory \n");
-        m.at(MemoryLifeCyle::SingleTaskPhase)->reset();
+        m.at(MemoryLifeCyle::SinglePhase)->reset();
     }
     return rtn;
 }

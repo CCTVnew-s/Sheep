@@ -69,11 +69,11 @@ int operator()(){
         gpustate = joingpu();
     bool postjob = postloop();
 
-    if (m.find(MemoryLifeCyle::Task)==m.end())
+    if (m.find(MemoryLifeCyle::LoopTask)==m.end())
         LOG(CRITIAL,execute, EXECUTORID<< "no task level memory, ignore reset\n");
     else{
         LOG(INFO,execute, EXECUTORID<< "reset task level local memory\n");
-        m.at(MemoryLifeCyle::Task)->reset();
+        m.at(MemoryLifeCyle::LoopTask)->reset();
     }    
 
     delete[] childtasks;

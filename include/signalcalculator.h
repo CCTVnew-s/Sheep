@@ -153,6 +153,8 @@ class CalcValueNodes
 {
 public:
 CalcValueNodes():_impl(std::vector<CalcValueNode> ()){};
+CalcValueNodes(std::vector<CalcValueNode> ns):_impl(ns){};
+
 CalcValueNodes(const CalcValueNodes& n): _impl(n._impl){};
 
 CalcValueNodes(simplecalculator * calc, std::string valname, Param p); // single param

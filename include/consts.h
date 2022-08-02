@@ -5,7 +5,7 @@ enum class CalculationLevel {Top = 0 ,Date = 100, Symbol = 200, SnapTime = 300, 
 
 enum class ExecutorPhase {Preloop = 0, GpuTask = 1, Loop = 2, Postloop = 3, Unkown = 100};
 
-enum class MemoryLifeCyle{Global, Task, SingleTaskPhase};
+enum class MemoryLifeCyle{Global, LoopTask, SinglePhase};
 
  enum RUNENV {h1,w1};
 

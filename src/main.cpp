@@ -53,7 +53,7 @@ int main(){
 
     auto memorymgr = buildnmemorymgr(NUMTHREAD + 1,std::vector<CalculationLevel>{CalculationLevel::Top, CalculationLevel::Date, CalculationLevel::Signal},
     
-    std::vector<MemoryLifeCyle>{MemoryLifeCyle::Global, MemoryLifeCyle::Task, MemoryLifeCyle::SingleTaskPhase},1024L*1024L*1024L*2L);
+    std::vector<MemoryLifeCyle>{MemoryLifeCyle::Global, MemoryLifeCyle::LoopTask, MemoryLifeCyle::SinglePhase},1024L*1024L*1024L*2L);
     
     ctpl::thread_pool workers(NUMTHREAD);
 

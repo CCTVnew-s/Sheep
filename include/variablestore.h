@@ -74,6 +74,7 @@ class tableview;
 
 typedef struct kfc{int t;union{H h;I i;J j;E e;F f;S s; void* p;tableview *k;struct{J n;void* G0;};};} *KFC;
 #define EMPTYKFC 0
+#define KTABLEVIEW 40
 
 #define DECKFCBUILD(type)  KFC buildKFC(type, int);
 DECKFCBUILD(H)

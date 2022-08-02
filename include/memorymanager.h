@@ -10,6 +10,40 @@
 class MemoryManager;
 typedef std::map<int, MemoryManager*> MemoManagerByThreads;
 
+
+
+// provide access to reserved access
+// manage crossing phases function
+
+class destroyer{
+public:
+virtual ~destroyer(){};
+};
+
+template <typename T>
+class simpledestroyer: public destroyer{
+public:
+    simpledestroyer(T* &px):p(px){};
+    ~simpledestroyer(){
+        std::cout << "delete sth from there" << std::endl;
+        delete p;
+    };
+T* p;
+};
+
+template <typename T>
+class simplearraydestroyer: public destroyer{
+public:
+    simplearraydestroyer(T* &px):p(px){};
+    ~simplearraydestroyer(){
+        std::cout << "delete sth from there" << std::endl;
+        delete [] p;
+    };
+T* p;
+};
+
+
+
 class MemoryManagerSingle{
 public:
 
@@ -19,6 +53,7 @@ public:
         sizebytes = s;
         used = 0;
         overfillmem = std::vector<void *> ();
+        tobecleaned = std::vector<destroyer*> ();
     }
 
     void reset(){
@@ -27,9 +62,13 @@ public:
         while(overfillmem.size()>0){
             free(overfillmem.back());
             overfillmem.pop_back();
-        }
-    }
+        };
 
+        while(tobecleaned.size()>0){
+            delete tobecleaned.back();
+            tobecleaned.pop_back();
+        };
+    }
 
     void * allocate(long size){
         if (sizebytes - used > size){
@@ -60,13 +99,18 @@ public:
         }
     }
 
+    void addtoclean(destroyer *d){
+        tobecleaned.push_back(d);
+    }
+
 private:
 void *mem;
 void *cursor;
 long sizebytes;
 long used;
 std::vector<void *> overfillmem;
-             
+std::vector<destroyer*> tobecleaned;
+
 };
 
 
