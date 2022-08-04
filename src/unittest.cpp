@@ -134,7 +134,8 @@ int testcalculator(I handle, RUNENV e, MemoryManager *m){
     auto g2 = new kdbdailydatamultithread(e, handle,dailyquerybuilder(e), g1, 3);
     g2->unittest(&cachefortest, m);
 
-
+    auto c1 = new businessdatecalculator(g1);
+    c1->unittest(&cachefortest, m);
 
 
     return 1;
