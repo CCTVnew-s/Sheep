@@ -54,7 +54,7 @@ public:
         used = 0;
         overfillmem = std::vector<void *> ();
         tobecleaned = std::vector<destroyer*> ();
-    }
+    };
 
     void reset(){
         used = 0;
@@ -68,7 +68,7 @@ public:
             delete tobecleaned.back();
             tobecleaned.pop_back();
         };
-    }
+    };
 
     void * allocate(long size){
         if (sizebytes - used > size){
@@ -82,7 +82,7 @@ public:
             cursor = (void *)((char *)cursor + size);
             return rtn;
         }
-    }
+    };
 
     // issue is that, we need to update every pointer, who refer here
     void resize(long long s){
@@ -97,11 +97,11 @@ public:
             sizebytes = s;
             used = 0;
         }
-    }
+    };
 
     void addtoclean(destroyer *d){
         tobecleaned.push_back(d);
-    }
+    };
 
 private:
 void *mem;

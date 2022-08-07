@@ -112,8 +112,10 @@ static std::string Description;
         datesinrange = std::make_tuple(kdbsetupcalc,kdbsetup::DATESINRANGE, Param());
         inputvars.push_back(CalcValueNodes(std::vector<CalcValueNode>({datesinrange})));
         // some outputs we register
-        for (auto q:tablequries)
+        for (auto q:tablequries){
             tablenodes.push_back(std::make_tuple(this, q.outputname, Param()));
+            tablenames.push_back(q.outputname);
+        }
         cachedutildate = 0;
         cachethreadstart = false;
         cacheddata = std::list<std::pair<I, std::promise<std::vector<K>> *>>();
@@ -217,8 +219,10 @@ static std::string Description;
     // 
     std::vector<K> executequeries( I qrydate){
         std::vector<K> rtn;
-        for (auto q : tablequries)
+        for (auto q : tablequries){
             rtn.push_back(q.execquery(handle, qrydate));
+            std::cout << q.query << "at " << qrydate << std::endl;
+        }
         return rtn;
     };
 
@@ -255,6 +259,7 @@ CalcValueNode datesinrange;
 int cachesize;
 std::vector<tablequeryexecutor> tablequries;
 std::vector<CalcValueNode> tablenodes;
+std::vector<std::string> tablenames;
 std::list<std::pair<I, std::promise<std::vector<K>> *>> cacheddata;
 std::mutex mtx; // loc for cache data vector
 I cachedutildate;

@@ -10,14 +10,14 @@
 #include <iostream>
 #include <future>
 #include "childtaskcalculator.h"
-
+#include "tablecalcnodes.h"
 
 
 int testtableview(I datahandle, RUNENV e){
     if (e == RUNENV::h1){
     K table = k(datahandle, "`symbol xasc select from book where date = last date",K(0));
     tableview t(table);
-    auto tableseries = splitsortedtable(t,"symbol");
+    auto tableseries = tosplitsortedtable(t,"symbol");
     std::cout << "we split by symbol created " << tableseries.size() << " tables";
     for (auto subt: tableseries){
         std::cout << "table with symbol" <<  ((char**) subt.table.at("symbol"))[0] << std::endl;
@@ -40,7 +40,7 @@ int testtableview(I datahandle, RUNENV e){
     else{
     K table = k(datahandle, "`SecurityID xasc select from hdb_Snapshot_SZ where date = last date",K(0));
     tableview t(table);
-    auto tableseries = splitsortedtable(t,"SecurityID");
+    auto tableseries = tosplitsortedtable(t,"SecurityID");
     std::cout << "we split by SecurityID created " << tableseries.size() << " tables";
     for (auto subt: tableseries){
         std::cout << "table with SecurityID" <<  ((char**) subt.table.at("SecurityID"))[0] << std::endl;
@@ -134,10 +134,22 @@ int testcalculator(I handle, RUNENV e, MemoryManager *m){
     auto g2 = new kdbdailydatamultithread(e, handle,dailyquerybuilder(e), g1, 3);
     g2->unittest(&cachefortest, m);
 
+
     auto c1 = new businessdatecalculator(g1);
     c1->unittest(&cachefortest, m);
 
+    splitsortedtable* splitday = new splitsortedtable(g2 , g2->tablenames, "symbol");
+    splitday->unittest(&cachefortest, m);;
 
+    symbolfilter *filter = new symbolfilter("(00)(.*)");
+    auto c2 = new symboltaskcalculator(splitday, tablequeryexecutor::bookdata,filter);
+    c2->unittest(&cachefortest, m);
+
+
+    splittablesubview* subtable = new splittablesubview(g2, splitday, g2->tablenames, splitday->splitcol, splitsortedtable::SPLITSTARTINDEX,splitsortedtable::SPLITENDINDEX);
+    subtable->unittest(&cachefortest, m);
+
+    
     return 1;
 }
 

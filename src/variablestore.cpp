@@ -149,8 +149,6 @@ GetChildTaskFunc GETENVFuncf2(ENVFunc *t, std::string c, std::string a, int p){
     return rtn;
 };
 
-
-
 // KFC lexical 
 std::ostream& operator<<(std::ostream& os, const KFC& f)
 {
@@ -173,6 +171,11 @@ std::ostream& operator<<(std::ostream& os, const KFC& f)
         }
         break;
     }
+    case KTABLEVIEW:{
+        os << f->k->tostring();
+        break;
+    }
+
     // other arrays to be filled
     default:
         os << "sth can't be present yet";

@@ -51,7 +51,7 @@ int main(){
 
     I datahandle = khpunc("localhost", e==RUNENV::h1?8939:9002, "",KTIMEOUT, 1);    
 
-    auto memorymgr = buildnmemorymgr(NUMTHREAD + 1,std::vector<CalculationLevel>{CalculationLevel::Top, CalculationLevel::Date, CalculationLevel::Signal},
+    auto memorymgr = buildnmemorymgr(NUMTHREAD + 1,std::vector<CalculationLevel>{CalculationLevel::Top, CalculationLevel::Date, CalculationLevel::Symbol},
     
     std::vector<MemoryLifeCyle>{MemoryLifeCyle::Global, MemoryLifeCyle::LoopTask, MemoryLifeCyle::SinglePhase},1024L*1024L*1024L*2L);
     

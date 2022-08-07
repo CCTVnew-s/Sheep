@@ -72,7 +72,7 @@ void * tableview:: offsetcolptr(std::string col, int offset ){
 #define EQUALPREVIOUSKID(KID,x, index ,rtnbool) EQUALPREVIOUS(KID,x, index ,rtnbool)
 
 
-std::vector<tableview> splitsortedtable(tableview t, std::string splitcol){
+std::vector<tableview> tosplitsortedtable(tableview t, std::string splitcol){
     int cursor = 1;
     int currenttablestart = 0;
     void *splitcolarray = t.table.at(splitcol);
@@ -114,6 +114,7 @@ std::vector<tableview> splitsortedtable(tableview t, std::string splitcol){
 
 
 
+// need sth from table view to K
 K extendAxisTable(K &axis, std::map<std::string, int> extendcolmeta){
     K tablecol = kK(axis->k)[0];
     K tableval = kK(axis->k)[1];
@@ -129,6 +130,7 @@ K extendAxisTable(K &axis, std::map<std::string, int> extendcolmeta){
     }
     return xT(xD(tablecol, tableval));
 }
+
 
 
 
