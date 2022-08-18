@@ -1,6 +1,7 @@
 #include "kutil.h"
 #include <iostream>
 #include <cstring>
+#include "k.h"
 // borrow the types from kq, shouldnt do table or dict, suppose
 
 
@@ -50,6 +51,47 @@
 
 #define KCONVERT(typeid, type, x, offset) case typeid: x = (void *)((type *)x  + offset); break;
 #define KCONVEREXPAND(KID,x,offset)  KCONVERT(KID, x, offset)
+
+int ktypetostring(int tofk){
+    switch(tofk){
+        case KB:
+            return sizeof(char);
+        case KG:
+            return sizeof(char);
+        case KH:
+            return sizeof(short);
+        case KI:
+            return sizeof(int);
+        case KJ:
+            return sizeof(J);
+        case KE:
+            return sizeof(E);
+        case KF:
+            return sizeof(F);
+        case KC:
+            return sizeof(char);
+        case KS:
+            return sizeof(char*);
+        case KP:
+            return sizeof(long);     
+        case KM:
+            return sizeof(int);     
+        case KD:
+            return sizeof(int);     
+        case KN:
+            return sizeof(long);     
+        case KU:
+            return sizeof(int);     
+        case KV:
+            return sizeof(int);     
+        case KT:
+            return sizeof(int);     
+        case 0:
+            return sizeof(K);    // special for K
+        default:
+            return 0;
+    }
+};
 
 
 
@@ -122,8 +164,8 @@ K extendAxisTable(K &axis, std::map<std::string, int> extendcolmeta){
     for(auto col: extendcolmeta){
         char * cstr = new char [col.first.length()+1];
         std::strcpy (cstr, col.first.c_str());
-        tablecol = js(& tablecol, (S)cstr);
-        tableval = jk(& tableval, ktn(col.second, length));
+         js(& tablecol, (S)cstr);
+         jk(& tableval, ktn(col.second, (J)length));
 
         //std::cout << "table col  # " << tablecol->n << std::endl <<  col.first.c_str();
         // std::cout << "table col  # " << tableval->n << std::endl;

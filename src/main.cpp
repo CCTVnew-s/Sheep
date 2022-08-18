@@ -21,8 +21,8 @@
 
 bool testpart(RUNENV e, I handle, MemoryManager *m ){
     // testthreadpool(1,NULL);
-    // ktoounittest(e);
-    testcalculator( handle, e,m);
+     ktoounittest(e);
+    // testcalculator( handle, e,m);
     return false;
 }
 

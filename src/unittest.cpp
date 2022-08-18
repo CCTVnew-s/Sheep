@@ -36,9 +36,9 @@ int testtableview(I datahandle, RUNENV e){
     ((I *)tk.table.at("Sigcol2"))[0] = 250;
     k(datahandle, "{ `testy set x}", axisex, K(0));
     }
-
+    
     else{
-    K table = k(datahandle, "`SecurityID xasc select from hdb_Snapshot_SZ where date = last date",K(0));
+    K table = k(datahandle, "`SecurityID xasc select from hdb_Snapshot_SZ where date = last date, SecurityID in `600000`000001`000002",K(0));
     tableview t(table);
     auto tableseries = tosplitsortedtable(t,"SecurityID");
     std::cout << "we split by SecurityID created " << tableseries.size() << " tables";
@@ -54,11 +54,20 @@ int testtableview(I datahandle, RUNENV e){
     meta.insert(std::make_pair("Sigcol1",1));
     meta.insert(std::make_pair("Sigcol2",6));
     meta.insert(std::make_pair("Sigcol3",8));
+    tableview test1(axis);
+    
     K axisex = extendAxisTable(axis, meta);
     tableview tk(axisex);
-    ((I *)tk.table.at("Sigcol2"))[0] = 250;
-    k(datahandle, "{ `testy set x}", axisex, K(0));
+    ((I *)tk.table.at("Sigcol2"))[0] = 2130;
+    ((E *)tk.table.at("Sigcol3"))[10] = 100050.0;
+    
 
+    K newtable = tk.buildKTable();
+    
+    k(datahandle, "{ `testy2 set x}", newtable, K(0));
+    
+    k(datahandle, "{ `testy set x}", axisex, K(0));
+    
 
     }
     return 1;

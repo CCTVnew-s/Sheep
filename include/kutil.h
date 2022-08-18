@@ -1,7 +1,6 @@
 #ifndef  TABLEVIEW
 #define TABLEVIEW
 
-#include "k.h"
 #include <map>
 #include <vector>
 #include <string>
@@ -9,9 +8,15 @@
 #include <sstream>
 #include "logging.h"
 #include "memorymanager.h"
+#include "k.h"
+#include <cstring>
+#include <stdio.h>
 // translate kdb table
 
 
+// try to use K for compound arrays
+
+int ktypetostring(int tofk);
 
 
 
@@ -20,18 +25,21 @@ class tableview{
 public:
 std::map<std::string, void*> table;
 std::map<std::string, int> tablemeta;
+std::vector<std::string> colseq; // keep the sequence
 int length;
 
 tableview(const tableview& t){
     table = std::map<std::string, void*> (t.table);
     tablemeta = std::map<std::string, int> (t.tablemeta);
     length = t.length;
+    colseq = t.colseq;
 };
 
 // simple contructor from kdb object
 tableview(const K &kt){
     table = std::map<std::string, void*>();
     tablemeta = std::map<std::string, int>();
+    colseq = std::vector<std::string>();
     K colnames = kK(kt->k)[0];
     K cols = kK(kt->k)[1];
     length = kK(cols)[0]->n;
@@ -40,6 +48,7 @@ tableview(const K &kt){
       std::string colstr = kS(colnames)[coli];
       table.insert(std::make_pair(colstr, (void *)kK(cols)[coli]->G0));
       tablemeta.insert(std::make_pair(colstr, int(kK(cols)[coli]->t)));
+      colseq.push_back(colstr);
       // debug
       std::cout << "col " << colstr << "type " << int((kK(cols)[coli])->t) << std:: endl;
     }    
@@ -48,15 +57,19 @@ tableview(const K &kt){
 tableview( tableview &  t, int startindex, int lensub){
     table = std::map<std::string, void*> ();
     tablemeta  =  std::map<std::string, int> (t.tablemeta);
+    colseq = std::vector<std::string>(t.colseq);
     length = lensub;
     for (auto c: t.table){
       table.insert( std::make_pair(c.first, t.offsetcolptr(c.first, startindex)));
     }
 };
 
+
+                           
+
 // allow direct construction
-tableview(std::map<std::string, void*> t, std::map<std::string, int> m,int l)
-:table(t),tablemeta(m), length(l){};
+tableview(std::map<std::string, void*> t, std::map<std::string, int> m,int l, std::vector<std::string> cs)
+:table(t),tablemeta(m), length(l), colseq(cs){};
 
 // present
 
@@ -70,8 +83,30 @@ std::string tostring(){
    return ss.str();
 };
 
+
+
 K buildKTable(){
-  return K(0);
+  K tableheader = ktn(KS,0);
+  // append one by one
+  K tablevalue = knk(0);
+  for (int j=0;j<colseq.size();j++){
+   auto p = colseq.at(j);
+   char * cstr = new char [p.length()+1];
+   std::strcpy (cstr, p.c_str());
+   K copycol = ktn(tablemeta.at(p), (J)length);
+   void *values = table.at(p);
+   // memory copy , but need to get the size
+   std::cout << "copying " << tablevalue->n << " th column " << p << "with address" << values << "length is "<< length << std::endl;
+   std::cout << "copying to address" << (void *) copycol->G0 << std::endl;
+   std::cout << "size of this column unit is " << ktypetostring(tablemeta.at(p)) << " for " << tablemeta.at(p) << std::endl;
+   memcpy((void *)copycol->G0, values, length*ktypetostring(tablemeta.at(p)));
+   
+    jk(&tablevalue, copycol);
+    js(& tableheader, (S) cstr);
+    r1(copycol);
+  }
+  // table meta ~~ any special types need to follow K conditions
+  return xT(xD(tableheader,tablevalue));
 }
 
 

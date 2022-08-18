@@ -5,6 +5,82 @@
 #include "memorymanager.h"
 #include "tools.h"
 #include <assert.h>
+#include <regex>
+#include "arraycalc.h"
+#include "ktypeoperator.h"
+
+// before splitting we will need to first generate AXIS/Observation table on Date level
+// then this table will also need to be split ~ 
+// also each signal or any calcouputs, need to be stored here
+
+// Centralized the outputs
+
+// need specify what outputs sigs, value, type, whether is K object
+// mapping from calcnode to return column name
+
+class DateOutputCache{
+public:
+    static std::string SYMBOLLEVELTABLE;
+    static std::string AXISTABLE;
+    // probably QP table
+    // one calc is mappning to one column
+    static std::map<CalcValueNode,std::tuple<std::string, std::string, int>> outputmaping;    
+    static std::tuple<std::string, std::string> getColMatching(CalcValueNode n);
+    static registernode(CalcValueNode n, std::string t, std::string col);
+
+private:
+    DateOutputCache();
+};
+
+
+
+
+// need some table operator ~
+
+
+class dailyoutputtables: public generalcalculator{
+public:
+    static std::string DAILYOUTPUTS;
+    static std::string Description;
+    
+
+   // how to append tables 
+    dailyoutputtables(generalcalculator* dailydata, std::string bookdata, std::vector<std::string> copythroughcols, tableoperator<bool> axisfilters)\
+    :generalcalculator(DAILYOUTPUTS,CalculationLevel::Date, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description){
+    // how to create     
+        
+        
+    };
+  
+   // some filters
+    virtual bool calculate(KFCStore * variablecache, KFCStore *taskcontext, MemoryManagerSet &mgr, std::map<CalculationLevel,KFC> curtask){
+        
+    
+    }
+    
+    CalcValueNode input;
+    
+    
+};
+
+// rules, name, (which) time within or several intervals, state filters
+// looks like a chain operator
+
+
+class axisfilter: public tableoperator<bool>{
+public:
+
+
+    
+
+};
+
+
+
+
+
+
+
 
 class splitsortedtable: public generalcalculator
 {
@@ -120,7 +196,7 @@ public:
            {std::string(SPLITSTARTINDEX),(void *)startindexcol}, {std::string(SPLITENDINDEX),(void *)endindexcol} };
         std::map<std::string, int> tablemeta = {{splitcol,KS}, {std::string(SPLITSTARTINDEX),KI}, {std::string(SPLITENDINDEX),KI}};
 
-        return new tableview(tablecols, tablemeta, symbolcount);
+        return new tableview(tablecols, tablemeta, symbolcount, std::vector<std::string>({splitcol,std::string(SPLITSTARTINDEX),std::string(SPLITENDINDEX)}));
     };
 
 
