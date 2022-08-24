@@ -11,7 +11,8 @@
 #include <future>
 #include "childtaskcalculator.h"
 #include "tablecalcnodes.h"
-
+#include "arraycalc.h"
+#include "ktypeoperator.h"
 
 int testtableview(I datahandle, RUNENV e){
     if (e == RUNENV::h1){
@@ -164,11 +165,28 @@ int testcalculator(I handle, RUNENV e, MemoryManager *m){
 
 
 
+bool testarraycalculator(){
+    auto where = ARRAY::Where();
+    std::cout << "we're testing array calc" << std::endl;
+    bool x[5] = {true,false,true,false,true};
+    int  y[5] = {};
+    auto rtn = where( ARRAY::buildvar(y,5) ,ARRAY::buildvar(x,5));
+
+    MemoryManagerSingle mgr(1024*1024*1024);
+    mgr.DEBUG = true;
+
+    std::cout << ARRAY::buildvar(x,5).l<< " size";
+    auto rtn2 = where.evaluatenotype(ARRAY::buildvar(x,5),&mgr);
+    ARRAY::var<int> rtn3(rtn2);
+
+    for(int i=0;i<rtn3.l;i++)
+        std::cout << rtn3[i] << std::endl;
+}
 
 int ktoounittest(RUNENV e){
+    testarraycalculator();
+    // I testhandle = khpunc("localhost", e==RUNENV::h1?8939:9002, "",60000, 1);    
+    // testtableview(testhandle, e);
 
-    I testhandle = khpunc("localhost", e==RUNENV::h1?8939:9002, "",60000, 1);    
-     testtableview(testhandle, e);
-
-
+    return 1;
 }

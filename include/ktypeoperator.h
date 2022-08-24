@@ -18,7 +18,6 @@
 #include <regex>
 #include "k.h"
 
-namespace CALC{
 
 
 // string like
@@ -45,18 +44,11 @@ template <class T1, class T2>
 bool winthin(T1& x, T2& lb, T2&ub) {return (x>=lb) && (x<=ub);};
 
 
-I timetype(int h=0, int m=0, int s=0,int mili=0){
-    return ((((h*60)+m)*60)+s)*1000 + mili;
-};
+I timetype(int h, int m=0, int s=0,int mili=0);
 
-I datetype(int y, int m, int d){
-    return ymd(y,m,d);
-};
+I datetype(int y, int m, int d);
 
 
-
-
-};
 
 
 

@@ -26,7 +26,7 @@ public:
     // one calc is mappning to one column
     static std::map<CalcValueNode,std::tuple<std::string, std::string, int>> outputmaping;    
     static std::tuple<std::string, std::string> getColMatching(CalcValueNode n);
-    static registernode(CalcValueNode n, std::string t, std::string col);
+    static bool registernode(CalcValueNode n, std::string t, std::string col);
 
 private:
     DateOutputCache();
@@ -45,7 +45,7 @@ public:
     
 
    // how to append tables 
-    dailyoutputtables(generalcalculator* dailydata, std::string bookdata, std::vector<std::string> copythroughcols, tableoperator<bool> axisfilters)\
+    dailyoutputtables(generalcalculator* dailydata, std::string bookdata, std::vector<std::string> copythroughcols)  //((char*)cursor) - ((char*)mem)
     :generalcalculator(DAILYOUTPUTS,CalculationLevel::Date, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description){
     // how to create     
         
@@ -67,13 +67,9 @@ public:
 // looks like a chain operator
 
 
-class axisfilter: public tableoperator<bool>{
-public:
-
-
-    
-
-};
+//class axisfilter: public tableoperator<bool>{
+//public:
+//};
 
 
 

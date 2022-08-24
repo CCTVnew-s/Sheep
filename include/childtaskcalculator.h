@@ -6,7 +6,7 @@
 #include "kdbnode.h"
 #include "tablecalcnodes.h"
 #include <regex>
-
+#include "ktypeoperator.h"
 
 
 class businessdatecalculator: public taskgenerator{
@@ -51,15 +51,6 @@ public:
     CalcValueNode datesinrange;
 };
 
-class symbolfilter{
-public:
-    symbolfilter(std::string p):pattern(p){};
-
-    virtual bool filter(std::string can){
-        return std::regex_match(can, std::regex(pattern));
-    };
-    std::string pattern;
-};
 
 
 // split all the tables generated 

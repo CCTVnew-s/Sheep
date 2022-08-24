@@ -18,6 +18,10 @@
 #include "memorymanager.h"
 #include "logging.h"
 
+
+namespace ARRAY{
+
+
 template <typename T>
 struct var{
 
@@ -32,7 +36,7 @@ int unitsize(){return sizeof(T);};
 };
 
 
-#define DECLAIRETYPEBUILD(type)  var<type> buildvar(type&,int);var<int> buildvar(type*,int);
+#define DECLAIRETYPEBUILD(type)  var<type> buildvar(type&,int);var<type> buildvar(type*,int);
 DECLAIRETYPEBUILD(bool)
 DECLAIRETYPEBUILD(int)
 DECLAIRETYPEBUILD(short)
@@ -90,8 +94,7 @@ public:
 varx():p(nullptr),l(0){}; // should be invalid
 
 varx(const varx &v):p(v.p),l(v.l){};
-template <typename T>
-varx(T& x):p((void*)&x),l(1){};
+
 template <typename T>
 varx(T* x,int lx): p((void*)x),l(lx){};
 
@@ -138,8 +141,6 @@ virtual varx evaluate(MemoryManagerSingle* mem){
 // modify return
 virtual varx evaluate_imp(MemoryManagerSingle* mem) = 0;
 
-virtual long unitrtnsize() = 0;
-
 
 virtual bool regarg(varx a){
     args.push_back(a);
@@ -173,12 +174,11 @@ int resultsize;
 #define REPEAT(n,head, body)     MACRO_GLUE(REPEAT_, n)(head, body)
 
 
-#define HEADEREXP_H(n) varx& x##n
-#define HEADEREXP_B(n) ,varx& x##n
+#define HEADEREXP_H(n) varx x##n
+#define HEADEREXP_B(n) ,varx x##n
 #define HEADEREXP_N(n) REPEAT(n, HEADEREXP_H, HEADEREXP_B)
 
 #define ARGSATX(x) args.at(x)
-#define COMMA ,
 #define VECARGEXP_H(n) ARGSATX(n)
 #define VECARGEXP_B(n) ,ARGSATX(n)
 #define VECARGEXP_N(n) REPEAT(n, VECARGEXP_H, VECARGEXP_B)
@@ -191,7 +191,7 @@ int resultsize;
  #define VECOPERATORN(n) \
  class vecopr_##n:public stackvecopr{public:    \
      vecopr_##n():stackvecopr(n){};      \
-     virtual varx evaluatenotype(HEADEREXP_N(n),MemoryManagerSingle* mem ){return varx();} ;\
+     virtual varx evaluatenotype(HEADEREXP_N(n),MemoryManagerSingle* mem )=0;\
      virtual varx evaluate_imp(MemoryManagerSingle* mem){        \
         return evaluatenotype(VECARGEXP_N(n),mem); };      \
      virtual int returnlen(HEADEREXP_N(n)){return x1.l;};         \
@@ -211,7 +211,8 @@ VECOPERATORN(9)
 #define SIMPLEXI_B(n) ,x##n
 #define SIMPLEXIEXP_N(n) REPEAT(n, SIMPLEXI_H, SIMPLEXI_B)
 
-#define EXTENDOPERATOR(n) virtual varx evaluatenotype(HEADEREXP_N(n),MemoryManagerSingle* mem){decltype(this->operator()(varx(),SIMPLEXIEXP_N(n))) y; y.p = static_cast<decltype(y.p)>(mem->allocate(y.unitsize()*rtnsingle?1:returnlen(SIMPLEXIEXP_N(n))));y.l= rtnsingle?1:returnlen(SIMPLEXIEXP_N(n)); auto z = this->operator()(y,SIMPLEXIEXP_N(n));return z;};
+#define EXTENDOPERATOR(n) virtual varx evaluatenotype(HEADEREXP_N(n),MemoryManagerSingle* mem){decltype(this->operator()(varx(),SIMPLEXIEXP_N(n))) y; auto l = rtnsingle?1:returnlen(SIMPLEXIEXP_N(n)); \
+ auto unit =  y.unitsize();std::cout << "returned allocated size" << l << " unit of T size" <<  unit << std::endl    ; y.p = static_cast<decltype(y.p)>(mem->allocate(l*unit)); y.l= l; auto z = this->operator()(y,SIMPLEXIEXP_N(n));return z;};
 
 
 // varx can be casted to/from any pointer with length
@@ -222,12 +223,11 @@ VECOPERATORN(9)
 // 3. If calculation failed, rtn won't be the same as argument rtn, such case, need to handle, especially we can't recollect the space allocated
 // 4. whether we support inplace updates ??? seems okay, when you code the operators carefully
 // 5. how to easy extend function into vector function,,, This is actually wraping f function with adverb,,parallel, scan, over??
+// 6. Usage perspective, a lot of classes converting between, how to simplify
 
 
 
-
-
-class where:public vecopr_1{
+class Where:public vecopr_1{
 public:
     // preallocated, if worked fine, var<int> is latest one, with updates, one issue here, "returned rtn" and original "rtn", if calculation failed, how you deal with memory?
     // return result type need to support y.unitsize(), available for all var templates
@@ -255,6 +255,9 @@ public:
 // 2) rtnsingle whether is single value rtn , if not x1 has the same length -- this need to be revisited, x1 should control loop, but 
 //      you need some better way determine the return size
 // 3) another way of usage  var<T> =  evaluatenotype(x1,x2,,,,xn, mem), mem will take care of the mem, meanwhile you lost memory when sth failed
+
+
+};
 
 
 

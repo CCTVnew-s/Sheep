@@ -13,12 +13,14 @@
 
 #include "arraycalc.h"
 
-template <typename T>
-CALC::var<T> CALC::getv(T& ax){
-    return var<T>(ax);
-}
 
-template <typename T>
-CALC::var<T> CALC::getv(T* ax){
-    return var<T>(ax);
-}
+
+
+#define DEFINETYPEBUILD(type)  ARRAY::var<type> ARRAY::buildvar(type &x,int l){ return var<type>(x); };      ARRAY::var<type> ARRAY::buildvar(type* x,int l){return var<type>(x,l);};
+DEFINETYPEBUILD(bool)
+DEFINETYPEBUILD(int)
+DEFINETYPEBUILD(short)
+DEFINETYPEBUILD(char)
+DEFINETYPEBUILD(long)
+DEFINETYPEBUILD(double)
+DEFINETYPEBUILD(float)

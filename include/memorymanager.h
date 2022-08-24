@@ -48,6 +48,7 @@ class MemoryManagerSingle{
 public:
 
     MemoryManagerSingle( long s){
+        DEBUG = false;
         mem = malloc(s * sizeof(char));
         cursor = mem;
         sizebytes = s;
@@ -71,17 +72,28 @@ public:
     };
 
     void * allocate(long size){
-        if (sizebytes - used > size){
+        if (DEBUG)
+            LOGAndCOUT(DEBUG,MEMORY,"before allocating our cursor is at "<< ((char*)cursor) - ((char*)mem) << std::endl );
+
+        if (sizebytes - used <= size){
+            LOGAndCOUT(INFO,MEMORY,"no enough space for "<<size << ", going to allocate" << std::endl);
             void *memtmp = malloc(size* sizeof(char));
             overfillmem.push_back(memtmp);
+            if (DEBUG)
+                LOGAndCOUT(DEBUG,MEMORY,"after allocating our cursor is at "<< ((char*)cursor) - ((char*)mem)<< std::endl );
+
             return memtmp;
         }
         else{
             used = used + size;
             void *rtn = cursor;
             cursor = (void *)((char *)cursor + size);
+            if (DEBUG)
+                LOGAndCOUT(DEBUG,MEMORY,"after allocating our cursor is at "<< ((char*)cursor) - ((char*)mem)<< std::endl );
+
             return rtn;
         }
+
     };
 
     // issue is that, we need to update every pointer, who refer here
@@ -102,6 +114,8 @@ public:
     void addtoclean(destroyer *d){
         tobecleaned.push_back(d);
     };
+
+bool DEBUG;
 
 private:
 void *mem;

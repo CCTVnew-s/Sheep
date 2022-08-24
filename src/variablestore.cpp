@@ -169,8 +169,14 @@ std::ostream& operator<<(std::ostream& os, const KFC& f)
         for (int i=0;i<f->n;i++){
             os << "Date 2000.01.01 + " << ((I*)f->G0)[i] << "\n";
         }
+        break;}
+    case - KI:{
+        os << "Dates array L " << f->n << "\n";
+        for (int i=0;i<f->n;i++){
+            os <<  ((I*)f->G0)[i] << " \n";
+        }
         break;
-    }
+        }
     case KTABLEVIEW:{
         os << f->k->tostring();
         break;
