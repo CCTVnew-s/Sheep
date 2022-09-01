@@ -33,22 +33,41 @@ private:
 };
 
 
+// AXIS determined by filter functions, F on table row; also need to reserve space for final outputs ,e g. signalbook1, singalautoion2, singlaliquidity etc., such bridge should be done by a class
 
+using ARRAY::varx;
 
-// need some table operator ~
+class AxisFilters:public ARRAY::vecopr_2 {
+
+public:
+
+    AxisFilters(symbolfilter f1 ); 
+    
+    // shall we do it line by row,,, can answer it here
+    ARRAY::var<int> operator()(ARRAY::var<int> rtn, ARRAY::var<S> sym, ARRAY::var<I> time);
+
+    static const bool rtnsingle=false;    // these 2 determines the return size
+
+    EXTENDOPERATOR(2) // normal extension, froced
+
+    bool symbolfilter(S& x);
+
+    bool timefilter(I& x);
+
+};
+
 
 
 class dailyoutputtables: public generalcalculator{
 public:
-    static std::string DAILYOUTPUTS;
-    static std::string Description;
+    static std::string FINALOUTPUTTABLE; // 
+    static std::string Description; // axis and reserved space for calculated signals
     
 
-   // how to append tables 
     dailyoutputtables(generalcalculator* dailydata, std::string bookdata, std::vector<std::string> copythroughcols)  //((char*)cursor) - ((char*)mem)
-    :generalcalculator(DAILYOUTPUTS,CalculationLevel::Date, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description){
+    :generalcalculator(FINALOUTPUTTABLE,CalculationLevel::Date, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description){
     // how to create     
-        
+    
         
     };
   

@@ -24,3 +24,18 @@ DEFINETYPEBUILD(char)
 DEFINETYPEBUILD(long)
 DEFINETYPEBUILD(double)
 DEFINETYPEBUILD(float)
+
+
+
+
+
+
+ARRAY::calcstack ARRAY::operator+(ARRAY::calstackele ele,ARRAY::calcstack second){
+    second._lists.push_front(ele);
+    return second;
+};
+
+ARRAY::calcstack ARRAY::operator+(ARRAY::calstackele first,ARRAY::calstackele second){
+   return calcstack(first) + second;
+};
+

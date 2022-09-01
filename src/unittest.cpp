@@ -174,6 +174,9 @@ bool testarraycalculator(){
 
     MemoryManagerSingle mgr(1024*1024*1024);
     mgr.DEBUG = true;
+    MemoryManagerSingle draftmgr(1024*1024*1024);
+    draftmgr.DEBUG = true;
+
 
     std::cout << ARRAY::buildvar(x,5).l<< " size";
     auto rtn2 = where.evaluatenotype(ARRAY::buildvar(x,5),&mgr);
@@ -181,6 +184,15 @@ bool testarraycalculator(){
 
     for(int i=0;i<rtn3.l;i++)
         std::cout << rtn3[i] << std::endl;
+
+    // test operand
+    ARRAY::calcstack testcacl = ARRAY::calcstack(&where) + ARRAY::buildvar(x,5);    
+    std::cout << testcacl._lists.size() <<  std::endl;
+    auto proxy = testcacl.evaluate(&draftmgr,&mgr);
+    ARRAY::var<int> rtn4(proxy );
+    for(int i=0;i<rtn4.l;i++)
+        std::cout << rtn4[i] << std::endl;
+    std::cout << "size of return unit " << proxy.unitsize << std::endl;
 }
 
 int ktoounittest(RUNENV e){

@@ -15,9 +15,11 @@
 #define ARRAYCALC_H
 
 #include <vector>
+#include <list>
 #include "memorymanager.h"
 #include "logging.h"
-
+#include <cstring>
+#include "k.h"
 
 namespace ARRAY{
 
@@ -85,18 +87,18 @@ for(int i=0;i++;i<l) \
 
 // II standrad operators
 
-#define EXPANDVARXCONVERTER(type) operator var<type>() {return var<type>((type*)p, l);};
-#define EXPANDVARXFROMVAR(type) varx(const var<type> &v):p((void*)v.p),l(v.l){};
+#define EXPANDVARXCONVERTER(type) operator var<type>() {return var<type>((type*)p, l) ;};
+#define EXPANDVARXFROMVAR(type) varx(const var<type> &v):p((void*)v.p),l(v.l),unitsize(sizeof(type)){};
 
 class varx{
 public:
 
-varx():p(nullptr),l(0){}; // should be invalid
+varx():p(nullptr),l(0),unitsize(0){}; // should be invalid
 
-varx(const varx &v):p(v.p),l(v.l){};
+varx(const varx &v):p(v.p),l(v.l),unitsize(v.unitsize){};
 
 template <typename T>
-varx(T* x,int lx): p((void*)x),l(lx){};
+varx(T* x,int lx): p((void*)x),l(lx),unitsize(sizeof(T)){};
 
 EXPANDVARXFROMVAR(bool)
 EXPANDVARXFROMVAR(int)
@@ -105,8 +107,8 @@ EXPANDVARXFROMVAR(char)
 EXPANDVARXFROMVAR(long)
 EXPANDVARXFROMVAR(double)
 EXPANDVARXFROMVAR(float)
+EXPANDVARXFROMVAR(char*)
 
-int unitsize(){return 0;};
 
 EXPANDVARXCONVERTER(bool)
 EXPANDVARXCONVERTER(int)
@@ -115,14 +117,15 @@ EXPANDVARXCONVERTER(char)
 EXPANDVARXCONVERTER(long)
 EXPANDVARXCONVERTER(double)
 EXPANDVARXCONVERTER(float)
+EXPANDVARXCONVERTER(char*)
+
 
 operator bool() const {return p!=nullptr;}
 
 void* p;
 int l;
+int unitsize;
 };
-
-
 
 
 // may not be super useful for simple vector calculation, but used for chained computations
@@ -146,14 +149,151 @@ virtual bool regarg(varx a){
     args.push_back(a);
 };
 
-
-
-
 int argn;
 std::vector<varx> args;
 int resultsize;
 
 };
+
+// functions classes to support chained vector calculations
+
+class calstackele{
+public:
+
+template <class T>
+calstackele(var<T> oprdx):oprd(varx(oprdx)),opr(nullptr),isoperator(false){};
+calstackele(varx oprdx):oprd(oprdx),opr(nullptr),isoperator(false){};
+calstackele(stackvecopr *oprx):oprd(varx()),opr(oprx),isoperator(true){};
+
+bool isoperator;
+varx oprd;
+stackvecopr* opr;
+};
+
+
+class calcstack{
+public:
+
+calcstack(calstackele ele){
+    _lists = std::list<calstackele>();
+    _lists.push_back(ele);
+};
+
+calcstack operator+(calstackele ele){
+    calcstack rtn(*this);
+    rtn._lists.push_back(ele);
+    return rtn;
+};
+
+calcstack operator+(calcstack second){
+    calcstack rtn(*this);
+    for(auto x:second._lists)
+        rtn._lists.push_back(x);
+    return rtn;
+};
+
+varx evaluate(MemoryManagerSingle* draftmem,MemoryManagerSingle* rtnmem){
+    // this mem should be special to calstack as draft paper
+    draftmem->reset(); // find a new paper
+
+    bool failed = false;
+    // better take some iteration approach
+    while(_lists.size()>1){
+        if(!evaluateonce(draftmem))
+        {
+            LOG(ERROR,VECCALSTACK,"evaluation failed in th middle" << std::endl);
+            failed = true;
+            break;
+        }
+    }
+
+    if(failed || _lists.size()!=1 || _lists.front().isoperator)
+        return varx();
+    varx rtn =  _lists.front().oprd;
+    // need to copy this baby to a permanent place;
+    void* copyto = rtnmem->allocate(rtn.l * rtn.unitsize);
+    std::memcpy(copyto, rtn.p, rtn.l * rtn.unitsize );
+    rtn.p = copyto;
+    return rtn;
+};
+// sh
+std::list<calstackele> _lists;
+
+private:
+
+bool evaluateonce(MemoryManagerSingle* mem){
+    auto iter = _lists.begin();
+    if( ! iter->isoperator){
+        LOG(ERROR,VECCALSTACK,"first element should be operator");
+        return false;
+    }
+    bool findvaluableiter = false;
+    while(!(findvaluableiter || iter == _lists.end())){
+        // current iter should be pointing to the operator
+        int numarg = iter->opr->argn;
+        std::list<calstackele>::iterator iterarg(iter);
+        iterarg++;
+        int succeednum=0;
+        for(int j=0;j<numarg;j++){
+            if(iterarg == _lists.end()){
+                LOG(ERROR,VECCALSTACK,"number of args are not right, " << "required "<<numarg<<" received"<< j+1 << std::endl);
+                iter = iterarg;
+                break;
+            }
+            else if(iterarg->isoperator){
+                iter = iterarg; // update to the latest operator
+                break;
+            }
+            else{
+               succeednum++; // need 
+            }
+        }
+        if(succeednum==numarg && iter!=iterarg){
+            LOG(DEBUG,VECCALSTACK,"find the evaluable operator with n args "<< succeednum <<std::endl );
+            findvaluableiter = true;
+        }
+        // remaining cases, either loop to the end, or we need further evaluation on next operator
+    }
+
+    if(findvaluableiter){
+        decltype(iter) iterarg(iter);
+        int numarg = iter->opr->argn;
+        for(int j=0;j<numarg;j++){
+            iterarg++;
+            iter->opr->regarg(iterarg->oprd);
+        }
+        varx rtn = iter->opr->evaluate(mem);
+        if (!rtn){
+            LOG(ERROR,VECCALSTACK,"error happend in evaluation of operator with "<< iter->opr->argn << "args" << std::endl);
+            return false;
+        }
+        for(int j=0;j<numarg+1;j++){
+            iter = _lists.erase(iter);
+        }
+        _lists.insert(iter,rtn);
+        return true;   
+    }
+    else{
+        LOG(ERROR,VECCALSTACK,"no available evaluation find"<< std::endl);
+        return false;// tell caller, no evaluation
+    }
+};
+
+
+};
+
+// overloading functions
+calcstack operator+(calstackele ele,calcstack second);
+calcstack operator+(calstackele first,calstackele second);
+
+// var or operator will be promoted to  ele ,  make concatnation start from CalcStack
+
+
+
+
+
+
+// implementation, 
 
 #define MACRO_CAT(x, y)     x##y
 #define MACRO_GLUE(x, y)    MACRO_CAT(x, y)
@@ -178,7 +318,7 @@ int resultsize;
 #define HEADEREXP_B(n) ,varx x##n
 #define HEADEREXP_N(n) REPEAT(n, HEADEREXP_H, HEADEREXP_B)
 
-#define ARGSATX(x) args.at(x)
+#define ARGSATX(x) args.at(x - 1)
 #define VECARGEXP_H(n) ARGSATX(n)
 #define VECARGEXP_B(n) ,ARGSATX(n)
 #define VECARGEXP_N(n) REPEAT(n, VECARGEXP_H, VECARGEXP_B)
@@ -217,44 +357,6 @@ VECOPERATORN(9)
 
 // varx can be casted to/from any pointer with length
 
-// we try to simplify operator, functions and methodoloy
-// 1. Need to preallocate the space for result, rtn->length can be reduced , with temparariry memory leakage
-// 2. It wanted to supoort chained calculation in CalcStack, it needs to provide information e.g. what's the return type (size) and dimonsion for intermidate results
-// 3. If calculation failed, rtn won't be the same as argument rtn, such case, need to handle, especially we can't recollect the space allocated
-// 4. whether we support inplace updates ??? seems okay, when you code the operators carefully
-// 5. how to easy extend function into vector function,,, This is actually wraping f function with adverb,,parallel, scan, over??
-// 6. Usage perspective, a lot of classes converting between, how to simplify
-
-
-
-class Where:public vecopr_1{
-public:
-    // preallocated, if worked fine, var<int> is latest one, with updates, one issue here, "returned rtn" and original "rtn", if calculation failed, how you deal with memory?
-    // return result type need to support y.unitsize(), available for all var templates
-    var<int> operator()(var<int> rtn, var<bool> cond){
-        int totaln = 0;
-        for(int i=0;i<cond.l;i++)
-            if (cond[i])
-                {
-                    rtn[totaln] = i;
-                    totaln ++;
-                }    
-        rtn.l = totaln;
-        return rtn;
-    };
-    static const bool rtnsingle=false;
-    // virtual int returnlen(varx x1){return x1.l;}; trying to support sth more complicated, seems not enough
-    // it should take the form of returnlen(x1,x2,,,,xn) with default 1 or x1.l 
-    // need a special size function, can be ignored generally
-    EXTENDOPERATOR(1)
-    
-};
-
-// KEYS of implementation and usage
-// 1) implement operator() as above, 
-// 2) rtnsingle whether is single value rtn , if not x1 has the same length -- this need to be revisited, x1 should control loop, but 
-//      you need some better way determine the return size
-// 3) another way of usage  var<T> =  evaluatenotype(x1,x2,,,,xn, mem), mem will take care of the mem, meanwhile you lost memory when sth failed
 
 
 };
