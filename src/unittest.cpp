@@ -13,6 +13,7 @@
 #include "tablecalcnodes.h"
 #include "arraycalc.h"
 #include "ktypeoperator.h"
+#include "extendarraycalc.h"
 
 int testtableview(I datahandle, RUNENV e){
     if (e == RUNENV::h1){

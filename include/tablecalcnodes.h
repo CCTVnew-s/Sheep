@@ -8,51 +8,161 @@
 #include <regex>
 #include "arraycalc.h"
 #include "ktypeoperator.h"
+using ARRAY::varx; // this should be defaul, since our vec operator core is this varx definition
 
+
+
+
+
+// BELOW 3 CLASSES are for AXIS generation
 // before splitting we will need to first generate AXIS/Observation table on Date level
 // then this table will also need to be split ~ 
 // also each signal or any calcouputs, need to be stored here
 
-// Centralized the outputs
+// Centralized the outputs ~~ what
+// we are doing here?? abstraction, multiple to one ~ Node to Pointer ~ 
+// or say, we're creating special table(tableview), its construction needs provide extra column mapping info
+// mean while it will keep this extra mapping info, when it's used as inputs for other calculation, need the previous mapping info to get column
+// don't make it static, since it can be resused
+
 
 // need specify what outputs sigs, value, type, whether is K object
 // mapping from calcnode to return column name
 
-class DateOutputCache{
+// need some global exposure, this board is equal to the calc table itself
+class OutputBoard{
 public:
-    static std::string SYMBOLLEVELTABLE;
-    static std::string AXISTABLE;
-    // probably QP table
-    // one calc is mappning to one column
-    static std::map<CalcValueNode,std::tuple<std::string, std::string, int>> outputmaping;    
-    static std::tuple<std::string, std::string> getColMatching(CalcValueNode n);
-    static bool registernode(CalcValueNode n, std::string t, std::string col);
+    static std::string MISSING;
+    OutputBoard(std::string name):tablename(name),outputmaping(std::map<CalcValueNode*,std::tuple<std::string, int>>()),sequence(std::map<int, CalcValueNode*> ()){};
 
-private:
-    DateOutputCache();
+    bool registernode(CalcValueNode *n,  std::string col, int metacol){ // regiester for table, col, name 
+        if (outputmaping.find(n)!= outputmaping.end()){
+            return false;
+        }
+        else{
+            outputmaping.insert(std::make_pair(n, std::make_tuple(col,metacol)));
+            sequence.insert(std::make_pair(sequence.size(), n));
+            return true;
+        }
+    };
+    // find the column name
+    std::string getColMatching(CalcValueNode *n){
+        if (outputmaping.find(n)==outputmaping.end())
+            return MISSING;
+        else
+            return std::get<0>(outputmaping.at(n));
+    };
+    // find the col metatype
+    int getColMatchingType(CalcValueNode *n){
+        if (outputmaping.find(n)==outputmaping.end())
+            return -999;
+        else
+            return std::get<1>(outputmaping.at(n));
+    };
+
+    std::string tablename;
+    std::map<CalcValueNode*,std::tuple<std::string, int>> outputmaping;   // table, col, Ktype'
+    // keep some build consequence, map sequence is too random
+    std::map<int, CalcValueNode*> sequence;
+
 };
 
 
+// we want to fix the output here, every new output modify it here
+class GlobalOutputBoards{
+public:
+    static std::string SymO;
+    static std::string AxisO;
+    static std::map<std::string,OutputBoard*> boards;
+
+    static bool initiate(){
+        boards.insert(std::make_pair(SymO, new OutputBoard(SymO)));
+        boards.insert(std::make_pair(AxisO, new OutputBoard(AxisO)));
+    }; // 
+
+    static OutputBoard* getOutput(std::string name){
+        if (boards.find(name) == boards.end())
+            return nullptr;
+        else
+            return boards.at(name);
+    };
+    
+};
+
+
+
+class Calnodeextendtable{
+public:
+    Calnodeextendtable(tableview* tx,OutputBoard* boardx):table(tx),board(boardx){};
+
+    // build the table at loop run time
+    bool buildtable(MemoryManagerSingle* mem){
+        for(auto colid: board->sequence){
+            auto colname = board->getColMatching(colid.second);
+            auto coltype = board->getColMatchingType(colid.second);
+            if (colname == OutputBoard::MISSING){
+                // handle wrong col
+                continue;
+            }
+            void *colptr = mem->allocate(ktypetostring(coltype)*table->length);
+            table->appendcol(colname, coltype, colptr);
+        }
+        return true;
+    };
+
+    std::string getColMatching(CalcValueNode *n){
+        return board->getColMatching(n);
+    };
+
+    tableview* table;    
+    OutputBoard* board;
+};
+
+
+
 // AXIS determined by filter functions, F on table row; also need to reserve space for final outputs ,e g. signalbook1, singalautoion2, singlaliquidity etc., such bridge should be done by a class
-
-using ARRAY::varx;
-
+// current filter structure : 1. symbol -> regex filter 2. time within interval
 class AxisFilters:public ARRAY::vecopr_2 {
-
 public:
 
-    AxisFilters(symbolfilter f1 ); 
-    
+    static std::string AXISTIMECOL;
+    static std::string AXISSYMCOL;
+    static std::vector<std::pair<I,I>> DEFAULTINTERVAL;
+
+    AxisFilters(symbolfilter *f1, std::vector<std::pair<I,I>> intvls=DEFAULTINTERVAL):fs(f1),tmintvls(intvls){}; 
     // shall we do it line by row,,, can answer it here
-    ARRAY::var<int> operator()(ARRAY::var<int> rtn, ARRAY::var<S> sym, ARRAY::var<I> time);
+    ARRAY::var<int> operator()(ARRAY::var<int> rtn, ARRAY::var<S> sym, ARRAY::var<I> time){
+        int nextloc = 0;
+        for(int i=0;i<sym.l;i++)
+            if( fs->filter(sym[i])  && timefilter(time[i])){
+                rtn[nextloc] = i;
+                nextloc++;
+            }
+        return rtn;
+    };
 
     static const bool rtnsingle=false;    // these 2 determines the return size
-
     EXTENDOPERATOR(2) // normal extension, froced
 
-    bool symbolfilter(S& x);
+    bool timefilter(I& x){ 
+        for (auto intvalx:tmintvls)
+        {
+            if ((intvalx.first<=x) && (intvalx.second>=x))
+               return true; 
+            else
+                continue;
+        }
+        return false;
+       };
 
-    bool timefilter(I& x);
+    ARRAY::varx filtertable(tableview* book, MemoryManagerSingle* mem){
+        ARRAY::var<int> time((I*)book->table.at(AXISTIMECOL),book->length);
+        ARRAY::var<S> sym((S*)book->table.at(AXISSYMCOL),book->length);
+        return evaluatenotype(time,sym,mem); // mmg will take care of the memory, though we have a bit of waste
+    };
+
+    symbolfilter* fs;
+    std::vector<std::pair<I,I>> tmintvls;
 
 };
 
@@ -64,51 +174,29 @@ public:
     static std::string Description; // axis and reserved space for calculated signals
     
 
-    dailyoutputtables(generalcalculator* dailydata, std::string bookdata, std::vector<std::string> copythroughcols)  //((char*)cursor) - ((char*)mem)
+    dailyoutputtables(generalcalculator* dailydata, std::string bookdata, std::vector<std::string> copythroughcols, AxisFilters* axisfilter)  //((char*)cursor) - ((char*)mem)
     :generalcalculator(FINALOUTPUTTABLE,CalculationLevel::Date, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description){
     // how to create     
-    
+
         
     };
   
    // some filters
     virtual bool calculate(KFCStore * variablecache, KFCStore *taskcontext, MemoryManagerSet &mgr, std::map<CalculationLevel,KFC> curtask){
-        
-    
+  
     }
     
-    CalcValueNode input;
-    
-    
+    CalcValueNode input;    
 };
-
-// rules, name, (which) time within or several intervals, state filters
-// looks like a chain operator
-
-
-//class axisfilter: public tableoperator<bool>{
-//public:
-//};
-
-
-
-
-
-
-
 
 class splitsortedtable: public generalcalculator
 {
 public:
 static std::string DATETABLESPLITTER;
 static std::string Description;
-
 static std::string SPLITSTARTINDEX;
 static std::string SPLITENDINDEX;
-
 static std::string SPLITINFO; // this is the real output 
-
-
 
 public:
 

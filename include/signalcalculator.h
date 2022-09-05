@@ -258,6 +258,7 @@ public:
 
     virtual KFC* generatechildtasks(KFCStore * variablecache,  std::map<CalculationLevel,KFC> curtask) {return NULL;};
 
+
 };
 
 

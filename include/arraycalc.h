@@ -118,6 +118,8 @@ EXPANDVARXCONVERTER(long)
 EXPANDVARXCONVERTER(double)
 EXPANDVARXCONVERTER(float)
 EXPANDVARXCONVERTER(char*)
+// even K later, we need list of K
+
 
 
 operator bool() const {return p!=nullptr;}

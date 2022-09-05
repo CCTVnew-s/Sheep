@@ -73,6 +73,16 @@ tableview(std::map<std::string, void*> t, std::map<std::string, int> m,int l, st
 
 // present
 
+bool appendcol(std::string colname, int metatype, void* ptr){
+  colseq.push_back(colname);
+  tablemeta.insert(std::make_pair(colname, metatype));
+  table.insert(std::make_pair(colname, ptr));
+  return true;
+};
+
+//
+
+
 std::string tostring(){
    std::stringstream ss;
    ss << "table with length" << length << std::endl;
