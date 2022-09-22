@@ -17,6 +17,7 @@
 
 int testtableview(I datahandle, RUNENV e){
     if (e == RUNENV::h1){
+    k(datahandle, "\\l /datassd/qhdb",K(0));
     K table = k(datahandle, "`symbol xasc select from book where date = last date",K(0));
     tableview t(table);
     auto tableseries = tosplitsortedtable(t,"symbol");
@@ -29,14 +30,29 @@ int testtableview(I datahandle, RUNENV e){
     K axis = k(datahandle, "select time, AskPrice1, BidPrice1 from book where date = last date, symbol = `000001 ", K(0));
     std::map<std::string, int> meta;
 
-    // output result
-    meta.insert(std::make_pair("Sigcol1",1));
-    meta.insert(std::make_pair("Sigcol2",6));
-    meta.insert(std::make_pair("Sigcol3",8));
-    K axisex = extendAxisTable(axis, meta);
-    tableview tk(axisex);
-    ((I *)tk.table.at("Sigcol2"))[0] = 250;
-    k(datahandle, "{ `testy set x}", axisex, K(0));
+    MemoryManagerSingle memtest(1024*1024*100);
+
+  
+    tableview test1(axis);
+    test1.appendcol("Sigcol1",1,&memtest);
+    test1.appendcol("Sigcol2",6,&memtest);
+    test1.appendcol("Sigcol3",8,&memtest);
+    // add from here    
+    ((I *)test1.table.at("Sigcol2"))[0] = 2130;
+    ((E *)test1.table.at("Sigcol3"))[10] = 100050.0;
+
+    k(datahandle, "{ testy2 :: x}", test1.buildKTable(), K(0));
+
+
+
+    std::vector<std::string> subcol = {"time", "AskPrice1", "Sigcol2"};
+    int loc[5] = {0,100,200,300,400};
+    tableview t2(test1,subcol,loc,5,&memtest);
+    std::cout << t2.tostring();
+    K newtable2 = t2.buildKTable();
+    k(datahandle, "{ `testy3 set x}", newtable2, K(0));
+
+
     }
     
     else{
@@ -70,8 +86,14 @@ int testtableview(I datahandle, RUNENV e){
     
     k(datahandle, "{ `testy set x}", axisex, K(0));
     
-
     }
+
+
+
+
+
+
+
     return 1;
 }
 
@@ -197,9 +219,9 @@ bool testarraycalculator(){
 }
 
 int ktoounittest(RUNENV e){
-    testarraycalculator();
-    // I testhandle = khpunc("localhost", e==RUNENV::h1?8939:9002, "",60000, 1);    
-    // testtableview(testhandle, e);
+    // testarraycalculator();
+     I testhandle = khpunc("localhost", e==RUNENV::h1?8939:9002, "",60000, 1);    
+    testtableview(testhandle, e);
 
     return 1;
 }

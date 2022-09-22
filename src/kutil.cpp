@@ -52,7 +52,7 @@
 #define KCONVERT(typeid, type, x, offset) case typeid: x = (void *)((type *)x  + offset); break;
 #define KCONVEREXPAND(KID,x,offset)  KCONVERT(KID, x, offset)
 
-int ktypetostring(int tofk){
+int ktypetosize(int tofk){
     switch(tofk){
         case KB:
             return sizeof(char);

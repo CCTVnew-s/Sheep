@@ -122,16 +122,12 @@ CalcValueNodes::CalcValueNodes(simplecalculator * calc, std::string valname, Par
 }
 
 
-simplecalculator::simplecalculator(std::string name, CalculationLevel level, ExecutorPhase phase, std::vector<CalcValueNodes> inputvars,std::vector<CalcValueNodes> outputvars, std::string description):graphnode(name,description),calclevel(level),calcphase(phase){  
+simplecalculator::simplecalculator(std::string name, CalculationLevel level, ExecutorPhase phase, std::string description):graphnode(name,description),calclevel(level),calcphase(phase){  
   // this->setupstreamnodes
-  dependencynode = std::set<simplecalculator *> ();
-  for (auto v:inputvars){
-    if (dependencynode.find(std::get<0>(v.nodes().at(0))) == dependencynode.end())
-      dependencynode.insert(std::get<0>(v.nodes().at(0)));
-  }
-  this->inputvars = inputvars;
-  this->outputvars = outputvars;
-
+  
+  this->inputvars = std::vector<CalcValueNodes>();
+  this->outputvars = std::vector<CalcValueNodes>();
+  this->upstreams =  std::vector<simplecalculator*> ();
 }
 
 bool simplecalculator::checkdependency(KFCStore * variablecache){

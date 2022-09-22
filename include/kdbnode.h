@@ -25,10 +25,11 @@ public:
 static std::string DATESINRANGE;
 static std::string Description;
 
-    kdbsetup(RUNENV e, I handle, I sd, I ed):generalcalculator("KDBSetup",CalculationLevel::Top, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description),
+    kdbsetup(RUNENV e, I handle, I sd, I ed):generalcalculator("KDBSetup",CalculationLevel::Top, ExecutorPhase::Preloop , Description),
     handle(handle),e(e),sd(sd),ed(ed){
-        this->description = "Set up kdb dabase,util function based on env, get dates in range";
-        this->outputvars.push_back(CalcValueNodes(this,DATESINRANGE));
+        datesinrange = getoutputnode(DATESINRANGE,Param());
+        // this->outputvars.push_back(datesinrange);
+        
         if (e == RUNENV::h1)
             query = "{[x;y] exec date from select distinct date from book where date within (x,y)}";
         else
@@ -67,7 +68,21 @@ I handle;
 RUNENV e;
 I sd,ed;
 std::string query;
+CalcValueNode datesinrange;
 };
+
+
+
+struct GlbSrcTable{
+
+static std::string bookdata;
+static std::string tradedata;
+static std::string orderdata;
+static std::string cxldata;
+};
+
+
+
 
 
 class tablequeryexecutor{
@@ -80,12 +95,6 @@ public:
     K execquery(I handle, I date){
         return k(handle, (S) query.c_str() ,  kd(date), K(0) );
     };
-
-static std::string bookdata;
-static std::string tradedata;
-static std::string orderdata;
-static std::string cxldata;
-
 
 };
 

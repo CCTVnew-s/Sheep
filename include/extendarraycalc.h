@@ -1,3 +1,7 @@
+#ifndef __EXTENDARRAYCALCH
+#define __EXTENDARRAYCALCH
+
+
 #include "arraycalc.h"
 
 namespace ARRAY{
@@ -82,3 +86,7 @@ class At:public vecopr_2{
 
 
 };
+
+
+
+#endif

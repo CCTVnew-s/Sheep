@@ -198,7 +198,7 @@ bool setvalue(KFCStore *variablecache, const CalcValueNode &node, KFC &val);
 class simplecalculator:public graphnode{
 
 public:
-    simplecalculator(std::string name, CalculationLevel calclevel, ExecutorPhase phase, std::vector<CalcValueNodes> inputvars, std::vector<CalcValueNodes> outputvars, std::string description);
+    simplecalculator(std::string name, CalculationLevel calclevel, ExecutorPhase phase, std::string description);
 
     bool checkdependency(KFCStore * variablecache);
 
@@ -225,12 +225,19 @@ public:
 
     virtual bool istaskgenerator(){return false;};
 
+    virtual bool registerupstream(simplecalculator* up){upstreams.push_back(up);};
+
+    virtual CalcValueNode getoutputnode(std::string n, Param p){return CalcValueNode(this, n,p);};
+
 
     CalculationLevel calclevel;
     ExecutorPhase calcphase;
     std::vector<CalcValueNodes> inputvars;
     std::vector<CalcValueNodes> outputvars;
     std::set<simplecalculator *> dependencynode;
+    // dependency using calculator
+    std::vector<simplecalculator*> upstreams;
+
 };
 
 //all type of calculators 1) source node 2) task generator 3) calculator 4) dump node
@@ -240,8 +247,8 @@ class taskgenerator:public simplecalculator{
 public:
 
         //no outputs into cache
-    taskgenerator(std::string name, CalculationLevel calclevel, ExecutorPhase phase, std::vector<CalcValueNodes> inputvars,  std::string description):
-    simplecalculator(name, calclevel, phase, inputvars, std::vector<CalcValueNodes>(), description){};
+    taskgenerator(std::string name, CalculationLevel calclevel, ExecutorPhase phase,  std::string description):
+    simplecalculator(name, calclevel, phase, description){};
 
 
     virtual bool calculate(KFCStore * variablecache, KFCStore *taskcontext, MemoryManagerSet &mgr,  std::map<CalculationLevel,KFC> curtask) {return false;};
@@ -253,8 +260,8 @@ public:
 class generalcalculator:public simplecalculator{
 public:
 
-    generalcalculator(std::string name, CalculationLevel calclevel, ExecutorPhase phase, std::vector<CalcValueNodes> inputvars, std::vector<CalcValueNodes> outputvars, std::string description):
-    simplecalculator(name, calclevel, phase, inputvars, outputvars, description){};
+    generalcalculator(std::string name, CalculationLevel calclevel, ExecutorPhase phase, std::string description):
+    simplecalculator(name, calclevel, phase, description){};
 
     virtual KFC* generatechildtasks(KFCStore * variablecache,  std::map<CalculationLevel,KFC> curtask) {return NULL;};
 

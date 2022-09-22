@@ -104,7 +104,7 @@ public:
                 // handle wrong col
                 continue;
             }
-            void *colptr = mem->allocate(ktypetostring(coltype)*table->length);
+            void *colptr = mem->allocate(ktypetosize(coltype)*table->length);
             table->appendcol(colname, coltype, colptr);
         }
         return true;
@@ -177,6 +177,7 @@ public:
     dailyoutputtables(generalcalculator* dailydata, std::string bookdata, std::vector<std::string> copythroughcols, AxisFilters* axisfilter)  //((char*)cursor) - ((char*)mem)
     :generalcalculator(FINALOUTPUTTABLE,CalculationLevel::Date, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description){
     // how to create     
+    
 
         
     };

@@ -6,10 +6,10 @@ std::string kdbsetup::Description = "load hdb, get the dates of data we would li
 
 
 
-std::string tablequeryexecutor::bookdata = "bookdatatable";
-std::string tablequeryexecutor::tradedata = "tradedatatable";
-std::string tablequeryexecutor::orderdata = "orderdatatable";
-std::string tablequeryexecutor::cxldata = "cxldatatable";
+std::string GlbSrcTable::bookdata = "bookdatatable";
+std::string GlbSrcTable::tradedata = "tradedatatable";
+std::string GlbSrcTable::orderdata = "orderdatatable";
+std::string GlbSrcTable::cxldata = "cxldatatable";
 
 std::vector<tablequeryexecutor> dailyquerybuilder(RUNENV e){
     std::vector<tablequeryexecutor> rtn;
@@ -18,10 +18,10 @@ std::vector<tablequeryexecutor> dailyquerybuilder(RUNENV e){
         std::string order= "{[d] `symbol xasc select from entrust where date = d}";
         std::string trans = "{[d] update BSFlag:?[BOrdID>SOrdID;1h;0b] from (`symbol xasc select from trade where date = d) where TradeTime within(09:29:59.000, 14:57:01)}" ;
         std::string cxl = "{[d] `symbol xasc select time:TransactTime, LocalTime, symbol: SecurityID, OrdID, Quantity, IsBid, SeqNo from cancelorder where date = d}";
-        auto bookexecutor = tablequeryexecutor(book, tablequeryexecutor::bookdata);
-        auto ordexecutor  = tablequeryexecutor(order, tablequeryexecutor::orderdata);
-        auto tradexecutor = tablequeryexecutor(trans, tablequeryexecutor::tradedata);
-        auto cxlexecutor  = tablequeryexecutor(cxl, tablequeryexecutor::cxldata);
+        auto bookexecutor = tablequeryexecutor(book, GlbSrcTable::bookdata);
+        auto ordexecutor  = tablequeryexecutor(order, GlbSrcTable::orderdata);
+        auto tradexecutor = tablequeryexecutor(trans, GlbSrcTable::tradedata);
+        auto cxlexecutor  = tablequeryexecutor(cxl, GlbSrcTable::cxldata);
         rtn.push_back(bookexecutor);
         rtn.push_back(ordexecutor);
         rtn.push_back(tradexecutor);
@@ -40,10 +40,10 @@ std::vector<tablequeryexecutor> dailyquerybuilder(RUNENV e){
         std::string cxl   = "{[d] `symbol xasc ( select date, SeqNo,  time:OrderTime, LocalTime, symbol: SecurityID, OrderID: OrderNO, Balance from hdb_Order_SS where date = d,OrderType = `D) , \
            (select date, SeqNo,  time:TransactTime, LocalTime, symbol: SecurityID, OrderID: ?[BidApplSeqNum=0;OfferApplSeqNum;BidApplSeqNum], Balance: LastQty from hdb_Transaction_SZ where date = d, ExecType = `$\"52\")}";
 
-        auto bookexecutor = tablequeryexecutor(book, tablequeryexecutor::bookdata);
-        auto ordexecutor  = tablequeryexecutor(order, tablequeryexecutor::orderdata);
-        auto tradexecutor = tablequeryexecutor(trans, tablequeryexecutor::tradedata);
-        auto cxlexecutor  = tablequeryexecutor(cxl, tablequeryexecutor::cxldata);
+        auto bookexecutor = tablequeryexecutor(book, GlbSrcTable::bookdata);
+        auto ordexecutor  = tablequeryexecutor(order, GlbSrcTable::orderdata);
+        auto tradexecutor = tablequeryexecutor(trans, GlbSrcTable::tradedata);
+        auto cxlexecutor  = tablequeryexecutor(cxl, GlbSrcTable::cxldata);
         rtn.push_back(bookexecutor);
         rtn.push_back(ordexecutor);
         rtn.push_back(tradexecutor);

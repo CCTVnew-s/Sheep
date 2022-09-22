@@ -11,12 +11,14 @@
 #include "k.h"
 #include <cstring>
 #include <stdio.h>
+#include "arraycalc.h"
+#include "extendarraycalc.h"
 // translate kdb table
 
 
 // try to use K for compound arrays
 
-int ktypetostring(int tofk);
+int ktypetosize(int tofk);
 
 
 
@@ -65,7 +67,26 @@ tableview( tableview &  t, int startindex, int lensub){
 };
 
 
-                           
+// copy sub view on new memory
+tableview( tableview &  t, std::vector<std::string> selectedcol, int* loc, int len, MemoryManagerSingle* mem){
+    table = std::map<std::string, void*> ();
+    tablemeta  =  std::map<std::string, int> ();
+    colseq = std::vector<std::string>();
+    length = len;
+    for (auto col:selectedcol){
+        colseq.push_back(col);
+        int coltype = t.tablemeta.at(col);
+        int colsinglesize =  ktypetosize(coltype);
+        tablemeta.insert(std::make_pair(col,coltype ));
+        table.insert(std::make_pair(col,  mem->allocate( len *colsinglesize)));
+        // need to copy by bytes
+        char* dest = (char*) table.at(col);
+        char* source = (char*) t.table.at(col);
+        for(int j=0;j<len;j++)
+          memcpy(dest+(j*colsinglesize), source + (loc[j]*colsinglesize) ,  colsinglesize);
+    }
+};
+
 
 // allow direct construction
 tableview(std::map<std::string, void*> t, std::map<std::string, int> m,int l, std::vector<std::string> cs)
@@ -81,6 +102,11 @@ bool appendcol(std::string colname, int metatype, void* ptr){
 };
 
 //
+bool appendcol(std::string colname, int metatype, MemoryManagerSingle* mem){
+  int typesize = ktypetosize(metatype);
+  void* colval = mem->allocate(typesize*length);
+  return appendcol(colname,metatype,colval);
+};
 
 
 std::string tostring(){
@@ -108,8 +134,8 @@ K buildKTable(){
    // memory copy , but need to get the size
    std::cout << "copying " << tablevalue->n << " th column " << p << "with address" << values << "length is "<< length << std::endl;
    std::cout << "copying to address" << (void *) copycol->G0 << std::endl;
-   std::cout << "size of this column unit is " << ktypetostring(tablemeta.at(p)) << " for " << tablemeta.at(p) << std::endl;
-   memcpy((void *)copycol->G0, values, length*ktypetostring(tablemeta.at(p)));
+   std::cout << "size of this column unit is " << ktypetosize(tablemeta.at(p)) << " for " << tablemeta.at(p) << std::endl;
+   memcpy((void *)copycol->G0, values, length*ktypetosize(tablemeta.at(p)));
    
     jk(&tablevalue, copycol);
     js(& tableheader, (S) cstr);
@@ -167,6 +193,8 @@ void * offsetcolptr(std::string col, int offset );
 std::vector<tableview> tosplitsortedtable(tableview t, std::string splitcol);
 
 
+
+// This function is broken
 // extend base table with signal columns
 K extendAxisTable(K &axis, std::map<std::string, int> extendcolmeta);
 
