@@ -8,6 +8,7 @@
 #include <regex>
 #include "arraycalc.h"
 #include "ktypeoperator.h"
+#include "kdbnode.h"
 using ARRAY::varx; // this should be defaul, since our vec operator core is this varx definition
 
 
@@ -78,6 +79,7 @@ public:
     static bool initiate(){
         boards.insert(std::make_pair(SymO, new OutputBoard(SymO)));
         boards.insert(std::make_pair(AxisO, new OutputBoard(AxisO)));
+        return true;
     }; // 
 
     static OutputBoard* getOutput(std::string name){
@@ -116,6 +118,7 @@ public:
 
     tableview* table;    
     OutputBoard* board;
+    
 };
 
 
@@ -138,6 +141,7 @@ public:
                 rtn[nextloc] = i;
                 nextloc++;
             }
+        rtn.l = nextloc;
         return rtn;
     };
 
@@ -161,6 +165,29 @@ public:
         return evaluatenotype(time,sym,mem); // mmg will take care of the memory, though we have a bit of waste
     };
 
+   ARRAY::varx filtertableonsymbol(tableview* book, MemoryManagerSingle* mem){
+        ARRAY::var<S> sym((S*)book->table.at(AXISSYMCOL),book->length);
+        // this calc should be simple
+        int distinctsymbol = 1;
+        for(int i=1;i<sym.l;i++){
+            if (! (sym[i] == sym[i - 1]))
+                distinctsymbol ++;
+        }
+
+        void* rtnptr = mem->allocate(sizeof(int)*distinctsymbol);
+        ARRAY::var<int> rtn((int*)rtnptr, distinctsymbol);
+        
+        int ix = 0;
+        rtn[0] = 0;
+        for(int i=1;i<sym.l;i++){
+            if (! (sym[i] == sym[i - 1])){
+                ix ++;
+                rtn[ix] = i;
+            }
+        }
+        return rtn;
+    };
+
     symbolfilter* fs;
     std::vector<std::pair<I,I>> tmintvls;
 
@@ -168,26 +195,83 @@ public:
 
 
 
-class dailyoutputtables: public generalcalculator{
+class dailyoutputtables:public generalcalculator{
 public:
     static std::string FINALOUTPUTTABLE; // 
     static std::string Description; // axis and reserved space for calculated signals
     
 
-    dailyoutputtables(generalcalculator* dailydata, std::string bookdata, std::vector<std::string> copythroughcols, AxisFilters* axisfilter)  //((char*)cursor) - ((char*)mem)
-    :generalcalculator(FINALOUTPUTTABLE,CalculationLevel::Date, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description){
+    dailyoutputtables( kdbdailydatamultithread* dailydata, AxisFilters* axisfilter,std::string bookdata = GlbSrcTable::bookdata, std::vector<std::string> outputtogenerate = {GlobalOutputBoards::SymO,GlobalOutputBoards::AxisO}, std::vector<std::string> copythroughcols = {"date","time","symbol","AskPrice1","BidPrice1","AskVolume1","BidVolume1"} ):generalcalculator(FINALOUTPUTTABLE,CalculationLevel::Date, ExecutorPhase::Preloop, Description){
     // how to create     
     
-
+        filter = axisfilter;
+        copycols = copythroughcols;
+        registerupstream(dailydata);
+        bookinput = dailydata->output.at(GlbSrcTable::bookdata); 
         
+
+
+        for (auto b: outputtogenerate){
+            outputboards.insert(std::make_pair(b, GlobalOutputBoards::getOutput(b)));
+            output.insert(std::make_pair(b, getoutputnode(b, Param())));
+        }
+        // whether we need this?
+        // inputvars.push_back(CalcValueNodes(bookinput));
     };
   
    // some filters
     virtual bool calculate(KFCStore * variablecache, KFCStore *taskcontext, MemoryManagerSet &mgr, std::map<CalculationLevel,KFC> curtask){
-  
-    }
+        tableview *book =  (CalcValueNodeUtil::getvalue(variablecache, bookinput))->k;
+        MemoryManagerSingle* mdraft = mgr.at(MemoryLifeCyle::Draft);
+        MemoryManagerSingle* mreturn = mgr.at(MemoryLifeCyle::LoopTask);
+        ARRAY::var<int> subindex = filter->filtertable(book, mdraft);
+        LOGAndCOUT(DEBUG,OUTPUTABLE,"axis index generated with length" << subindex.l << std::endl);
+        tableview* axistable = new tableview(*book, copycols, subindex.p , subindex.l ,mreturn);
+        ARRAY::var<int> subindexsym = filter->filtertableonsymbol(book, mdraft);
+        LOGAndCOUT(DEBUG,OUTPUTABLE,"symbol index generated with length" << subindexsym.l << std::endl);
+
+        tableview* symtable = new tableview(*book, {"date","symbol"} , subindexsym.p , subindexsym.l ,mreturn);
+        auto extendaxis = Calnodeextendtable(axistable,outputboards.at(GlobalOutputBoards::AxisO) );
+        auto extendsym  = Calnodeextendtable(symtable,outputboards.at(GlobalOutputBoards::SymO));
+        extendaxis.buildtable(mreturn);
+        extendsym.buildtable(mreturn);
+        // set result, how table
+        this->setvariableincache(variablecache, output.at(GlobalOutputBoards::AxisO)  ,buildKFC(axistable, KTABLEVIEW));
+        this->setvariableincache(variablecache, output.at(GlobalOutputBoards::SymO),buildKFC(symtable, KTABLEVIEW));
+        // collect "new" tabl allocation, need think about 
+        mreturn->addtoclean(new simpledestroyer<tableview>(axistable));
+        mreturn->addtoclean(new simpledestroyer<tableview>(symtable));
+
+    };
     
-    CalcValueNode input;    
+    virtual bool serializecalctrace(){return true;};
+
+    virtual bool unittest(KFCStore * variablecache, MemoryManager *mgr){     
+       KFC bk = CalcValueNodeUtil::getvalue(variablecache, bookinput);
+       assert( 0!= bk);
+
+       KFCStore context;
+       auto task0 = buildKFC(0,KD);
+       std::map<CalculationLevel,KFC> curtask = {{CalculationLevel::Date, task0}};
+       calculate(variablecache, &context, *(mgr->getMemoryManagerSet(CalculationLevel::Date)), curtask);      
+       auto axist = CalcValueNodeUtil::getvalue(variablecache, output.at(GlobalOutputBoards::AxisO));
+       auto symt = CalcValueNodeUtil::getvalue(variablecache, output.at(GlobalOutputBoards::SymO));
+       LOGAndCOUT(DEBUG,DailyOutput, "we get return axis tables results for first table" << axist);
+       LOGAndCOUT(DEBUG,DailyOutput, "we get return symbol tables results for first table" << symt);
+       
+       // we need to print out, to be very confident
+       axist->k->printtable(std::cout);
+       symt->k->printtable(std::cout);
+    }
+
+
+    CalcValueNode bookinput;    
+    AxisFilters* filter;
+    std::vector<std::string> copycols;
+
+    std::map<std::string, OutputBoard*> outputboards;
+    std::map<std::string, CalcValueNode> output;
+
 };
 
 class splitsortedtable: public generalcalculator
@@ -201,36 +285,32 @@ static std::string SPLITINFO; // this is the real output
 
 public:
 
-    static std::vector<std::pair<std::string, Param>> enrichemptyparam(std::vector<std::string> tablenames){
-         std::vector<std::pair<std::string, Param>> rtn;
-         for (auto name : tablenames)
-            rtn.push_back(std::make_pair(name, Param()));
-        return rtn;
-    };
 
-    static std::string keysplitinfo(std::string tablename){
-        return tablename + "_" + SPLITINFO;
-    };
+    splitsortedtable(kdbdailydatamultithread* tablegenerator,dailyoutputtables* outputtableholder, 
+    std::vector<std::string> sourcetablename = {GlbSrcTable::bookdata,GlbSrcTable::tradedata, GlbSrcTable::cxldata, GlbSrcTable::orderdata },
+     std::vector<std::string> outputtablename = {GlobalOutputBoards::AxisO, GlobalOutputBoards::SymO} ,std::string s = "symbol")
+    :generalcalculator(DATETABLESPLITTER,CalculationLevel::Date, ExecutorPhase::Preloop,  Description),splitcol(s),kdbsource(tablegenerator),signaltable(outputtableholder){
 
+      this->registerupstream(tablegenerator);
+      this->registerupstream(outputtableholder);
 
-    splitsortedtable(generalcalculator* tablegenerator, std::vector<std::pair<std::string, Param>> tableids,std::string s)
-    :generalcalculator(DATETABLESPLITTER,CalculationLevel::Date, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description),splitcol(s), 
-    tablenodes(std::vector<CalcValueNode>()), splittablenodes(   std::vector<CalcValueNode>()){
-      for (auto t: tableids)
-      {
-        CalcValueNode nt = std::make_tuple(tablegenerator, t.first , t.second);
-        tablenodes.push_back(nt); 
-        CalcValueNode splitnt = std::make_tuple(this, keysplitinfo(t.first) , t.second);
-        splittablenodes.push_back(splitnt);
+      for (auto t:sourcetablename){
+        tablenodes.push_back(tablegenerator->output.at(t));
+        tablenames.push_back(t);
+        CalcValueNode rtnt = this->getoutputnode(t,Param());
+        output.insert(std::make_pair(t, rtnt));
       }
-      inputvars.push_back(CalcValueNodes(tablenodes));
-      outputvars.push_back(CalcValueNodes(splittablenodes));
+
+      for (auto t:outputtablename){
+        tablenodes.push_back(outputtableholder->output.at(t));
+        tablenames.push_back(t);
+        CalcValueNode rtnt = this->getoutputnode(t,Param());
+        output.insert(std::make_pair(t, rtnt));
+      }
+
     };
 
-    splitsortedtable(generalcalculator* tablegenerator, std::vector<std::string> tablenames,std::string splitcol)
-    :splitsortedtable(tablegenerator,enrichemptyparam(tablenames),splitcol)
-    {    
-    };
+
 
     virtual bool calculate(KFCStore * variablecache, KFCStore *taskcontext, MemoryManagerSet &mgr, std::map<CalculationLevel,KFC> curtask){
         MemoryManagerSingle * mgrcur = mgr.at(MemoryLifeCyle::LoopTask);        
@@ -239,7 +319,7 @@ public:
             simpletimer( std::get<1>(tnode) + std::string(" table splitting"));
             tableview *tpointer =  (CalcValueNodeUtil::getvalue(variablecache, tnode))->k;
             tableview *splitinfo = generatesplittable(tpointer, mgrcur, splitcol);
-            this->setvariableincache(variablecache, keysplitinfo(std::get<1>(tnode)), Param() ,buildKFC(splitinfo, KTABLEVIEW));
+            this->setvariableincache(variablecache,  output.at(std::get<1>(tnode)) ,buildKFC(splitinfo, KTABLEVIEW));
             LOGAndCOUT(DEBUG,SPLITTABLE,"table split is done for " << std::get<1>(tnode) << std::endl);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::nanoseconds elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
@@ -293,9 +373,6 @@ public:
         endindexcol[curtblidx] = cursor;
         
 
-
-
-
         std::map<std::string, void *> tablecols = {{splitcol, (void *)symcol},\
            {std::string(SPLITSTARTINDEX),(void *)startindexcol}, {std::string(SPLITENDINDEX),(void *)endindexcol} };
         std::map<std::string, int> tablemeta = {{splitcol,KS}, {std::string(SPLITSTARTINDEX),KI}, {std::string(SPLITENDINDEX),KI}};
@@ -320,7 +397,7 @@ public:
        std::map<CalculationLevel,KFC> curtask = {{CalculationLevel::Date, task0}};
        calculate(variablecache, &context, *(mgr->getMemoryManagerSet(CalculationLevel::Date)), curtask);      
 
-       auto splitinfo = CalcValueNodeUtil::getvalue(variablecache, std::make_tuple(this,keysplitinfo(std::get<1>(tablenodes.at(0))), Param()));
+       auto splitinfo = CalcValueNodeUtil::getvalue(variablecache, output.at(tablenames.at(0)));
        LOGAndCOUT(DEBUG,TABLESPLIT, "we get split tables results for first table" << splitinfo);
        // we need to print out, to be very confident
       // splitinfo->k->printtable(std::cout);
@@ -328,14 +405,18 @@ public:
 
     };
 
-
     std::vector<CalcValueNode> tablenodes;
-    std::vector<CalcValueNode> splittablenodes;
-    generalcalculator* tablegenerator;
+    std::vector<std::string> tablenames;
+    kdbdailydatamultithread* kdbsource;
+    dailyoutputtables* signaltable;
     std::string splitcol;
+    std::map<std::string, CalcValueNode> output;
 };
 
 // at each symbol level, trying to generate sub views from task SYMBOL 000001 e.g.
+// more infro.....
+
+
 class splittablesubview:public generalcalculator{
 public:
 
@@ -349,25 +430,42 @@ static std::string SUBATSYMBOL;
 
 
     // suppose table has no Param
-    splittablesubview(generalcalculator* originaltablegen, generalcalculator* splitter, std::vector<std::string> tablenames, std::string splitcolname, std::string startindex, std::string endindex)
-    :generalcalculator(SUBTABLEFROMSPLIT,CalculationLevel::Symbol, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description),tables(tablenames),
+    splittablesubview(kdbdailydatamultithread* tablegenerator,dailyoutputtables* outputtableholder, splitsortedtable* splitter, 
+           std::vector<std::string> sourcetablename = {GlbSrcTable::bookdata,GlbSrcTable::tradedata, GlbSrcTable::cxldata, GlbSrcTable::orderdata },
+     std::vector<std::string> outputtablename = {GlobalOutputBoards::AxisO, GlobalOutputBoards::SymO}, 
+     std::string splitcolname = "symbol", std::string startindex = splitsortedtable::SPLITSTARTINDEX, std::string endindex = splitsortedtable::SPLITENDINDEX)
+    :generalcalculator(SUBTABLEFROMSPLIT,CalculationLevel::Symbol, ExecutorPhase::Preloop, Description),
     splitcol(splitcolname),startindexcol(startindex), endindexcol(endindex)
     {
-        for(auto t:tablenames){
-            CalcValueNode origt = std::make_tuple(originaltablegen, t , Param());
-            CalcValueNode splitinfot = std::make_tuple(splitter, splitsortedtable::keysplitinfo(t), Param());
-            splitinfo.push_back(splitinfot);
-            originaltable.push_back(origt);
-        }
-        inputvars.push_back(CalcValueNodes(splitinfo));
-        inputvars.push_back(CalcValueNodes(originaltable));
+        registerupstream(tablegenerator);
+        registerupstream(outputtableholder);
+        registerupstream(splitter);
+        
+     for (auto t:sourcetablename){
+        originaltable.push_back(tablegenerator->output.at(t));
+        splitinfo.push_back(splitter->output.at(t));
+        tables.push_back(t);
+        CalcValueNode rtnt = this->getoutputnode(t,Param());
+        output.insert(std::make_pair(t, rtnt));
+      }
+
+      for (auto t:outputtablename){
+        originaltable.push_back(outputtableholder->output.at(t));
+        splitinfo.push_back(splitter->output.at(t));
+        tables.push_back(t);
+        CalcValueNode rtnt = this->getoutputnode(t,Param());
+        output.insert(std::make_pair(t, rtnt));
+      }
+
+      //  inputvars.push_back(CalcValueNodes(splitinfo));
+      //  inputvars.push_back(CalcValueNodes(originaltable));
     };
 
     virtual bool calculate(KFCStore * variablecache, KFCStore *taskcontext, MemoryManagerSet &mgr, std::map<CalculationLevel,KFC> curtask){
         S cursym = curtask.at(CalculationLevel::Symbol)->s;
 
         MemoryManagerSingle * mgrcur = mgr.at(MemoryLifeCyle::LoopTask);        
-        for(int i=0;i<splitinfo.size();i++){
+        for(int i=0;i<tables.size();i++){
             assert(  (CalcValueNodeUtil::getvalue(variablecache, originaltable.at(i))) != NULL );
             assert(  (CalcValueNodeUtil::getvalue(variablecache, splitinfo.at(i))) != NULL );
 
@@ -376,7 +474,7 @@ static std::string SUBATSYMBOL;
             tableview *ts =  (CalcValueNodeUtil::getvalue(variablecache, splitinfo.at(i)))->k;
             
             tableview *subtable = getsubview(to, ts, cursym, tables.at(i));
-            this->setvariableincache(variablecache, keysubviewtable(tables.at(i)), Param() ,buildKFC(subtable, KTABLEVIEW));
+            this->setvariableincache(variablecache, output.at(tables.at(i)) ,buildKFC(subtable, KTABLEVIEW));
             mgrcur->addtoclean(new simpledestroyer<tableview>(subtable));
         }
         return true;
@@ -417,7 +515,6 @@ static std::string SUBATSYMBOL;
 
        std::cout << "start testing" << std::endl;
 
-       
        //calculate(variablecache, &context, *(mgr->getMemoryManagerSet(CalculationLevel::Symbol)), curtask);
        // test not exist
        //KFC tblsub0 = CalcValueNodeUtil::getvalue(variablecache,std::make_tuple(this,keysubviewtable(tables.at(0)), Param()));
@@ -437,6 +534,7 @@ static std::string SUBATSYMBOL;
     std::string splitcol;
     std::string startindexcol;
     std::string endindexcol;
+    std::map<std::string, CalcValueNode> output;
 };
 
 

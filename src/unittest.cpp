@@ -15,6 +15,7 @@
 #include "ktypeoperator.h"
 #include "extendarraycalc.h"
 
+
 int testtableview(I datahandle, RUNENV e){
     if (e == RUNENV::h1){
     k(datahandle, "\\l /datassd/qhdb",K(0));
@@ -86,14 +87,8 @@ int testtableview(I datahandle, RUNENV e){
     
     k(datahandle, "{ `testy set x}", axisex, K(0));
     
+
     }
-
-
-
-
-
-
-
     return 1;
 }
 
@@ -139,7 +134,7 @@ int testcalculator(I handle, RUNENV e, MemoryManager *m){
     KFCStore cachefortest;
     I sd = e == RUNENV::h1 ? ymd(2021,1,1): ymd(2021,8,1);
     I ed = e == RUNENV::h1 ? ymd(2021,2,1): ymd(2021,9,1);
-    generalcalculator *g1 = new kdbsetup(e,handle,sd,ed); 
+    kdbsetup *g1 = new kdbsetup(e,handle,sd,ed); 
     g1->unittest(&cachefortest, m);
     g1->serializecalctrace();
     
@@ -171,15 +166,24 @@ int testcalculator(I handle, RUNENV e, MemoryManager *m){
     auto c1 = new businessdatecalculator(g1);
     c1->unittest(&cachefortest, m);
 
-    splitsortedtable* splitday = new splitsortedtable(g2 , g2->tablenames, "symbol");
-    splitday->unittest(&cachefortest, m);;
+    GlobalOutputBoards::initiate();
+     
+    symbolfilter szfilter("(00)(.*)");
+    AxisFilters filter(&szfilter);
+    std::cout << "creating output table now" << std::endl;
 
-    symbolfilter *filter = new symbolfilter("(00)(.*)");
-    auto c2 = new symboltaskcalculator(splitday, tablequeryexecutor::bookdata,filter);
+    auto output = new dailyoutputtables(g2,&filter);
+    output->unittest(&cachefortest, m);
+
+
+    splitsortedtable* splitday = new splitsortedtable(g2 , output);
+    splitday->unittest(&cachefortest, m);
+
+    auto c2 = new symboltaskcalculator(splitday);
     c2->unittest(&cachefortest, m);
 
 
-    splittablesubview* subtable = new splittablesubview(g2, splitday, g2->tablenames, splitday->splitcol, splitsortedtable::SPLITSTARTINDEX,splitsortedtable::SPLITENDINDEX);
+    splittablesubview* subtable = new splittablesubview(g2,output,splitday);
     subtable->unittest(&cachefortest, m);
 
     
@@ -219,9 +223,9 @@ bool testarraycalculator(){
 }
 
 int ktoounittest(RUNENV e){
-    // testarraycalculator();
-     I testhandle = khpunc("localhost", e==RUNENV::h1?8939:9002, "",60000, 1);    
-    testtableview(testhandle, e);
+    testarraycalculator();
+    // I testhandle = khpunc("localhost", e==RUNENV::h1?8939:9002, "",60000, 1);    
+    // testtableview(testhandle, e);
 
     return 1;
 }

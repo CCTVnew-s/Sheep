@@ -58,8 +58,8 @@ static std::string Description;
         bool status =  calculate( variablecache, &taskcontext, *(mgr->getMemoryManagerSet(CalculationLevel::Top)), curtask);
         if (status){
             std::cout << "unit test for set up kdb \ns";
-            std::cout << "we have set " << CalcValueNodeUtil::getStoreKey(outputvars.at(0).nodes().at(0)) << "with value \n";
-            std::cout << CalcValueNodeUtil::getvalue(variablecache, outputvars.at(0).nodes().at(0));
+            std::cout << "we have set " << CalcValueNodeUtil::getStoreKey(datesinrange) << "with value \n";
+            std::cout << CalcValueNodeUtil::getvalue(variablecache, datesinrange);
         }
         return status;
     }
@@ -115,20 +115,27 @@ public:
 static std::string DAILYDATAQUERIER;
 static std::string Description;
 
-   kdbdailydatamultithread(RUNENV e,  I handle, std::vector<tablequeryexecutor> tbls, generalcalculator *kdbsetupcalc, int cachesize)\
-   :generalcalculator(DAILYDATAQUERIER,CalculationLevel::Date, ExecutorPhase::Preloop, std::vector<CalcValueNodes>(),std::vector<CalcValueNodes>(), Description),handle(handle),cachesize(cachesize),tablequries(tbls)
+   kdbdailydatamultithread(RUNENV e,  I handle, std::vector<tablequeryexecutor> tbls, kdbsetup *kdbsetupcalc, int cachesize)\
+   :generalcalculator(DAILYDATAQUERIER,CalculationLevel::Date, ExecutorPhase::Preloop, Description),handle(handle),cachesize(cachesize),tablequries(tbls)
    {
-        datesinrange = std::make_tuple(kdbsetupcalc,kdbsetup::DATESINRANGE, Param());
+        // This upstream register is mandatory
+        registerupstream(kdbsetupcalc);
+        datesinrange = kdbsetupcalc->datesinrange;
+
+        // Label here, whether we need this input registeration
         inputvars.push_back(CalcValueNodes(std::vector<CalcValueNode>({datesinrange})));
+        
         // some outputs we register
         for (auto q:tablequries){
-            tablenodes.push_back(std::make_tuple(this, q.outputname, Param()));
+
+            CalcValueNode tablenode = std::make_tuple(this, q.outputname, Param());
+            tablenodes.push_back(tablenode);
             tablenames.push_back(q.outputname);
+            output.insert(std::make_pair(q.outputname,tablenode ));
         }
         cachedutildate = 0;
         cachethreadstart = false;
         cacheddata = std::list<std::pair<I, std::promise<std::vector<K>> *>>();
-
 
         // 
    };
@@ -169,7 +176,7 @@ static std::string Description;
         {
             K ti = vals.at(i);
             tableview *ti_v = new tableview(ti);  // here is a sth created in KFC, but it holds sth you need to describe it by your self
-            this->setvariableincache(variablecache, tablequries.at(i).outputname ,Param() ,buildKFC(ti_v, KTABLEVIEW) );
+            this->setvariableincache(variablecache, output.at(tablequries.at(i).outputname)   ,buildKFC(ti_v, KTABLEVIEW) );
             LOGAndCOUT(DEBUG,KDBDAILY,"set table  "<< tablequries.at(i).outputname << "into cache" << std::endl );
             // also need to register the destroy ~ need to centrally manage those "new things" that we need to live across functions
 
@@ -264,11 +271,15 @@ static std::string Description;
 
 
 CalcValueNode datesinrange;
- I handle;
+I handle;
 int cachesize;
+
 std::vector<tablequeryexecutor> tablequries;
 std::vector<CalcValueNode> tablenodes;
 std::vector<std::string> tablenames;
+
+std::map<std::string, CalcValueNode> output; // output can be sourced by original name
+
 std::list<std::pair<I, std::promise<std::vector<K>> *>> cacheddata;
 std::mutex mtx; // loc for cache data vector
 I cachedutildate;

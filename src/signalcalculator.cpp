@@ -150,6 +150,11 @@ bool simplecalculator::setvariableincache(KFCStore * variablecache, std::string 
 }
 
 
+bool simplecalculator::setvariableincache(KFCStore * variablecache,CalcValueNode &n, KFC val){
+  return CalcValueNodeUtil::setvalue(variablecache,n, val);
+}
+
+
 bool simplecalculator::setvariablesincache(KFCStore * variablecache, std::string rtnname, ParamSets p, std::vector<KFC> val){
   bool rtn = true;
   auto nodes = p.getParams();

@@ -14,9 +14,9 @@ public:
     static std::string GETBUSDATE;
     static std::string Description;
 
-    businessdatecalculator(simplecalculator *ksetup):taskgenerator(GETBUSDATE,CalculationLevel::Top, ExecutorPhase::Preloop,std::vector<CalcValueNodes>(), Description)
+    businessdatecalculator(kdbsetup *ksetup):taskgenerator(GETBUSDATE,CalculationLevel::Top, ExecutorPhase::Preloop, Description)
     {
-        datesinrange = std::make_tuple(ksetup,kdbsetup::DATESINRANGE, Param());
+        datesinrange = ksetup->datesinrange;
         inputvars.push_back(CalcValueNodes(std::vector<CalcValueNode>({datesinrange})));
     };
 
@@ -59,9 +59,9 @@ public:
     static std::string GETSYMBOLSOFDAYTASK;
     static std::string Description;
 
-    symboltaskcalculator(splitsortedtable *d, std::string tgttable,symbolfilter* symbolfilter):taskgenerator(GETSYMBOLSOFDAYTASK,CalculationLevel::Date, ExecutorPhase::Preloop,std::vector<CalcValueNodes>(), Description),filter(symbolfilter),daysplitter(d)
+    symboltaskcalculator(splitsortedtable *d):taskgenerator(GETSYMBOLSOFDAYTASK,CalculationLevel::Date, ExecutorPhase::Preloop, Description),daysplitter(d)
     {
-        splitinfo = std::make_tuple(daysplitter, splitsortedtable::keysplitinfo(tgttable), Param());
+        splitinfo =  d->output.at(GlobalOutputBoards::SymO) ;// std::make_tuple(daysplitter, splitsortedtable::keysplitinfo(tgttable), Param());
         inputvars.push_back(CalcValueNodes(std::vector<CalcValueNode>({splitinfo})));
     };
 
@@ -70,10 +70,8 @@ public:
         tableview* splitinfoT = CalcValueNodeUtil::getvalue(variablecache, splitinfo)->k;
         std::vector<S> rtnsyms;
         for(int i=0;i<splitinfoT->length;i++){
-            if (filter->filter(((S*) splitinfoT->table.at(daysplitter->splitcol))[i])){
                 rtnsyms.push_back(((S*) splitinfoT->table.at(daysplitter->splitcol))[i]);
                 LOGAndCOUT(DEBUG,SYMBOLCHILD, " symbol is added " <<((S*) splitinfoT->table.at(daysplitter->splitcol))[i] << std::endl);
-            }
         }
         KFC *rtn = new KFC[rtnsyms.size() + 1];
         for (int j=0;j<rtnsyms.size();j++)

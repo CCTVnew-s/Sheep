@@ -74,6 +74,7 @@ tableview( tableview &  t, std::vector<std::string> selectedcol, int* loc, int l
     colseq = std::vector<std::string>();
     length = len;
     for (auto col:selectedcol){
+        std::cout << "copying col" << col << std::endl;
         colseq.push_back(col);
         int coltype = t.tablemeta.at(col);
         int colsinglesize =  ktypetosize(coltype);

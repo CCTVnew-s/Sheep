@@ -219,6 +219,8 @@ public:
 
     bool setvariablesincache(KFCStore * variablecache, std::string rtnname, ParamSets p, std::vector<KFC> val);
     
+    bool setvariableincache(KFCStore * variablecache, CalcValueNode &n, KFC val);
+
     std::string getDescription(){return description;};
 
     virtual bool unittest(KFCStore * variablecache,MemoryManager *mgr){return false;}
@@ -247,8 +249,7 @@ class taskgenerator:public simplecalculator{
 public:
 
         //no outputs into cache
-    taskgenerator(std::string name, CalculationLevel calclevel, ExecutorPhase phase,  std::string description):
-    simplecalculator(name, calclevel, phase, description){};
+    taskgenerator(std::string name, CalculationLevel calclevel, ExecutorPhase phase,  std::string description):simplecalculator(name, calclevel, phase, description){};
 
 
     virtual bool calculate(KFCStore * variablecache, KFCStore *taskcontext, MemoryManagerSet &mgr,  std::map<CalculationLevel,KFC> curtask) {return false;};
